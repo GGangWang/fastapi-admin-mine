@@ -1,4 +1,5 @@
 import asyncio
+import re
 from collections.abc import Sequence
 
 from sqlalchemy import Inspector, inspect, select, text
@@ -16,6 +17,29 @@ from .schema import (
     GenTableColumnSchema,
     GenTableSchema,
 )
+
+# SQLAlchemy MySQL 反射会把列级字符集/排序规则一并写入类型字符串
+# （如 ``VARCHAR(200) CHARACTER SET utf8mb4 COLLATE "utf8mb4_general_ci"``）。
+# 这些属于库级配置而非列类型本身，且含引号会撞上代码生成器的类型形状白名单
+# （见 template_safety.is_valid_column_type），因此在反射边界剥离为跨方言的规范形状。
+_COLUMN_TYPE_AFFIX_RE = re.compile(
+    r"\s+(?:CHARACTER\s+SET|CHARSET)\s+[A-Za-z0-9_]+"
+    r"|\s+COLLATE\s+(?:\"[^\"]+\"|'[^']+'|[A-Za-z0-9_]+)",
+    re.IGNORECASE,
+)
+
+
+def _normalize_reflected_column_type(raw: str) -> str:
+    """剥离反射类型上的方言修饰，归一为「类型名(长度/精度)」规范形状。
+
+    参数:
+    - raw (str): 反射得到的原始类型文本。
+
+    返回:
+    - str: 去除 CHARACTER SET / COLLATE 并压缩空白后的类型文本。
+    """
+    text = _COLUMN_TYPE_AFFIX_RE.sub("", raw)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
@@ -393,7 +417,7 @@ class GenTableColumnCRUD(CRUDBase[GenTableColumnModel, GenTableColumnSchema, Gen
         for idx, column in enumerate(columns):
             # 获取列的基本信息
             column_name = column["name"]
-            column_type = str(column["type"])
+            column_type = _normalize_reflected_column_type(str(column["type"]))
             is_nullable = column.get("nullable", True)
             column_default = column.get("default", None)
             # 获取列注释（如果有的话）

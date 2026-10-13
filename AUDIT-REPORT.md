@@ -1,4 +1,4 @@
-# FastapiAdmin 全栈审计总报告
+# ResNexus 全栈审计总报告
 
 > 生成时间：2026-10-04
 > 审计范围：后端（FastAPI）、Web 管理后台（Vue3）、移动端（uniapp）、部署编排（Docker/Nginx）、需求覆盖、测试与可验证性、交互与视觉一致性

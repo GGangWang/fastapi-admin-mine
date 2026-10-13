@@ -46,7 +46,7 @@
  * ```
  *
  * @module useChart
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 
 import { echarts, type EChartsOption } from "@/plugins/echarts";

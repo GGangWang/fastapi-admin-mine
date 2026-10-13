@@ -1,5 +1,5 @@
 # ============================================================================
-# FastapiAdmin 后端镜像（源码构建路径）
+# ResNexus后端镜像（源码构建路径）
 #
 # 构建参数 DB 决定安装哪套数据库驱动：
 #   docker build --build-arg DB=mysql    -f docker/backend/Dockerfile .   # 默认

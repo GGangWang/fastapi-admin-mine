@@ -1,7 +1,7 @@
-# FastapiAdmin backend 只读审计报告
+# ResNexus backend 只读审计报告
 
 - 审计对象：`backend/`（v3.2.0，FastAPI 0.138 + SQLAlchemy 2.0 async + Redis + MySQL/PostgreSQL/SQLite + Alembic）
-- 审计日期：本轮审计内（工作区 `/Users/tao/workspace/FastapiAdmin`）
+- 审计日期：本轮审计内（工作区 `/Users/tao/workspace/ResNexus`）
 - 审计方式：**只读**。除本报告外未修改/删除任何仓库文件，未启动数据库/Redis，未安装依赖，未提交 git。
 - 规模：`app/` 下 216 个 `.py`，约 28,500 行（`modules/` 16 个业务模块约 20,000 行，`core+config+utils+common` 约 7,500 行）。
 
@@ -87,7 +87,7 @@
 ### H1 [high] `SECRET_KEY` 有硬编码默认值；`.env.example` 未模板化该键；无启动期校验 → 生产可能用公开密钥签发 JWT
 
 **位置**
-- `backend/app/config/setting.py:66`：`SECRET_KEY: str = "fastapiadmin-dev-secret-key-do-not-use-in-production"  # ...（必须通过环境变量 SECRET_KEY 设置，无默认值）`——注释与代码自相矛盾，实际**有**默认值。
+- `backend/app/config/setting.py:66`：`SECRET_KEY: str = "resnexus-dev-secret-key-do-not-use-in-production"  # ...（必须通过环境变量 SECRET_KEY 设置，无默认值）`——注释与代码自相矛盾，实际**有**默认值。
 - `backend/env/.env.example:2` 的注释明确要求使用者修改 `SECRET_KEY`，但文件正文里**没有 `SECRET_KEY` 这一项**（也没有 `DATA_ENCRYPTION_KEY`）。
 - 该密钥还被用来派生数据加密主密钥：`backend/app/utils/crypto_util.py:52-56`（`DATA_ENCRYPTION_KEY or SECRET_KEY` → HKDF）。
 - 相关反证：`tests/conftest.py:33` 注释写「SECRET_KEY 必填项，固定注入保证测试确定性」——说明作者本意是「必填」，但 `Settings` 给了默认值，测试才需要手动注入。

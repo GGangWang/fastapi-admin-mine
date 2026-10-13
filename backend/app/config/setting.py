@@ -38,9 +38,9 @@ class Settings(BaseSettings):
     # ******************* API文档配置 ****************** #
     # ================================================= #
     DEBUG: bool = True  # 调试模式
-    TITLE: str = "🎉 FastapiAdmin 🎉 "  # 文档标题
+    TITLE: str = "ResNexus"  # 文档标题
     VERSION: str = "3.0.0"  # 版本号
-    DESCRIPTION: str = "一个基于fastapi、sqlalchemy、redis实现的轻量化框架"  # 文档描述
+    DESCRIPTION: str = "ResNexus接口服务"  # 文档描述
     SUMMARY: str = "接口汇总"  # 文档概述
     DOCS_URL: str = "/docs"  # Swagger UI路径
     REDOC_URL: str = "/redoc"  # ReDoc路径
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     # ================================================= #
     # ******************* 登录认证配置 ****************** #
     # ================================================= #
-    SECRET_KEY: str = "fastapiadmin-dev-secret-key-do-not-use-in-production"  # JWT密钥（必须通过环境变量 SECRET_KEY 设置，无默认值）
+    SECRET_KEY: str = "resnexus-dev-secret-key-do-not-use-in-production"  # JWT密钥（必须通过环境变量 SECRET_KEY 设置，无默认值）
     ALGORITHM: str = "HS256"  # JWT算法
     ACCESS_TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 12  # access_token过期时间(秒)12 小时
     REFRESH_TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 12  # refresh_token过期时间(秒)12 小时
@@ -103,7 +103,7 @@ class Settings(BaseSettings):
     DATABASE_PORT: int = 3306
     DATABASE_USER: str = "root"
     DATABASE_PASSWORD: str = ""
-    DATABASE_NAME: str = "fastapiadmin"
+    DATABASE_NAME: str = "resnexus"
 
     # ================================================= #
     # ******************** Redis配置 ******************* #
@@ -151,7 +151,7 @@ class Settings(BaseSettings):
     OAUTH_STATE_TTL: int = 600  # OAuth state 参数过期时间（秒）
     # 生产回跳域名白名单（**不再是通配符 "*"**）：OAuth 回调域名必须命中其中之一。
     # 非生产环境通常用 localhost/容器域名登录，故默认一并放行本机与回环地址；生产可按需收敛。
-    OAUTH_ALLOWED_HOSTS: list[str] = ["service.fastapiadmin.com", "*.fastapiadmin.com", "localhost", "127.0.0.1", "[::1]"]
+    OAUTH_ALLOWED_HOSTS: list[str] = ["resnexus.example.com", "*.resnexus.example.com", "localhost", "127.0.0.1", "[::1]"]
 
     # ================================================= #
     # *************** 微信小程序配置（可选）************** #
@@ -186,7 +186,7 @@ class Settings(BaseSettings):
     # ================================================= #
     # ******************* 安全中间件配置 ****************** #
     # ================================================= #
-    ALLOWED_HOSTS: list[str] = ["service.fastapiadmin.com", "*.fastapiadmin.com"]  # 允许访问的主机名列表（生产域名）
+    ALLOWED_HOSTS: list[str] = ["resnexus.example.com", "*.resnexus.example.com"]  # 部署时通过环境变量设置实际生产域名
     # 容器内健康检查走 http://localhost:8001、本地直连调试都需要 Host: localhost/127.0.0.1/[::1]；
     # 该放行范围由下面的开关控制——生产若不需要（例如健康检查改走 127.0.0.1 之外的内部域名）可置 False。
     ALLOW_LOCALHOST_HOSTS: bool = True

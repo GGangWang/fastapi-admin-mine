@@ -1,8 +1,8 @@
-# FastapiAdmin 容器化 / 部署链路审计报告
+# ResNexus 容器化 / 部署链路审计报告
 
 - 审计任务：t6 — Docker 与部署运维审计（docker/ + deploy.sh + CI）
 - 审计对象：`docker/`（compose、backend/Dockerfile、nginx、mysql、redis）、`deploy.sh`、`deploy-artifacts.sh`、`.github/workflows`、根 `.dockerignore`、`backend/env/*`
-- 工作区：`/Users/tao/workspace/FastapiAdmin`，分支工作树（含未提交改动）
+- 工作区：`/Users/tao/workspace/ResNexus`，分支工作树（含未提交改动）
 - 约束遵守：**只读审计**。未执行 `docker build` / `docker compose up`、未启动任何容器、未安装依赖、未提交 git；本报告是唯一新增文件。
 - 证据标注规则：`文件:行号` 均为审计时刻工作区实际内容；实测命令输出见第 8 节。
 
@@ -19,7 +19,7 @@
 | B3 | **blocker** | 真实 `OPENAI_API_KEY` 与生产库口令被 `COPY ./backend/ .` 烤进镜像层 | `docker/backend/Dockerfile:20`；`.dockerignore:18`（只排除 `.env`）；`backend/env/.env.prod` |
 | H1 | high | MySQL(3306)/Redis(6379)/Backend(8001) 全部绑定 `0.0.0.0` 直接对公网暴露 | `docker/docker-compose.yaml:22-23,58-59,120-121`；`docker-compose config` 无任何 `host_ip` |
 | H2 | high | `FORWARDED_ALLOW_IPS=*` + 8001 直连 → `X-Forwarded-For` 可伪造，绕过 IP 登录限流 | `docker/docker-compose.yaml:117-119`；`backend/app/config/setting.py:34,74` |
-| H3 | high | 生产 TLS 私钥权限 `0666`（全局可写），pfx/jks 明文口令随目录一起上传 | `ls -l docker/nginx/ssl/server.key`；`docker/nginx/ssl/service.fastapiadmin.com/{nginx,iis,tomcat}/`；`docker/.env`（0644） |
+| H3 | high | 生产 TLS 私钥权限 `0666`（全局可写），pfx/jks 明文口令随目录一起上传 | `ls -l docker/nginx/ssl/server.key`；`docker/nginx/ssl/resnexus.example.com/{nginx,iis,tomcat}/`；`docker/.env`（0644） |
 | H4 | high | 证书纯手动更换、无自动续期、无到期告警；HTTP 块把 ACME http-01 校验路径也 301 到 HTTPS | `docker/nginx/nginx.conf:73-77,86-87`；证书 `notAfter=Mar 6 2027` |
 | H5 | high | 没有任何 CI：`.github/workflows/` 是空目录 | `ls -laR .github/` 仅一个空 `workflows/` |
 | H6 | high | 构建上下文约 68 MiB，内含 21 个 ssl 私钥文件与两套前端产物 | `.dockerignore` 未排除 `docker/`、`backend/dist`；实测 context≈68.4 MiB |
@@ -63,7 +63,7 @@
 
 - `backend/app/config/setting.py:66`：
   ```python
-  SECRET_KEY: str = "fastapiadmin-dev-secret-key-do-not-use-in-production"  # JWT密钥（必须通过环境变量 SECRET_KEY 设置，无默认值）
+  SECRET_KEY: str = "ResNexus-dev-secret-key-do-not-use-in-production"  # JWT密钥（必须通过环境变量 SECRET_KEY 设置，无默认值）
   ```
   注释说"无默认值"，实际有默认值。
 - 全仓库检索 `SECRET_KEY` 赋值来源（`.venv/`、`node_modules/` 除外）**只命中**：测试用的 `backend/tests/conftest.py:32` 与源码默认值本身。
@@ -228,12 +228,12 @@
 -rw-r--r--@ docker/.env
 -rw-rw-rw-@ docker/nginx/ssl/server.key            # 0666
 -rw-rw-rw-@ docker/nginx/ssl/server.pem            # 0666
--rw-rw-rw-@ docker/nginx/ssl/service.fastapiadmin.com/nginx/service.fastapiadmin.com.key
--rw-rw-rw-@ docker/nginx/ssl/service.fastapiadmin.com/nginx/service.fastapiadmin.com.crt
+-rw-rw-rw-@ docker/nginx/ssl/resnexus.example.com/nginx/resnexus.example.com.key
+-rw-rw-rw-@ docker/nginx/ssl/resnexus.example.com/nginx/resnexus.example.com.crt
 ```
 
-- `docker/nginx/ssl/service.fastapiadmin.com/iis/password.txt`、`.../tomcat/password.txt` 各 6 字节明文口令（用于 pfx/jks 导出）。
-- `docker/nginx/ssl/service.fastapiadmin.com.zip` 是证书打包文件。
+- `docker/nginx/ssl/resnexus.example.com/iis/password.txt`、`.../tomcat/password.txt` 各 6 字节明文口令（用于 pfx/jks 导出）。
+- `docker/nginx/ssl/resnexus.example.com.zip` 是证书打包文件。
 - `docker/.env` 权限 0644（全局可读），而 `docker/README.md:45` 明确要求 `chmod 600 docker/.env`；`deploy.sh:29-33` 用 `cp .env.example .env` 生成文件时也不会改权限。
 - 好消息：证书/私钥/`.env` 都**没有**被 git 跟踪（`.gitignore` 覆盖 `docker/nginx/ssl/*`、`docker/.env`；`git ls-files docker/` 已确认只有 `.gitkeep` 与配置模板）。
 - 但 `deploy.sh:5-6` 的部署模型是"把项目目录整体 scp/FTP 上传服务器"，`.env`、`server.key`、`*.zip`、`password.txt` 会**原样落到服务器磁盘**，权限一并带过去；同时它们也落在 Docker 构建上下文里（见 H6）。
@@ -241,7 +241,7 @@
 **改法**
 
 1. 立即收紧：`chmod 700 docker/nginx/ssl && chmod 600 docker/nginx/ssl/*.key docker/.env`；`deploy.sh` 在 `load_env` 后加 `chmod 600 "${ENV_FILE}"` 与 `find docker/nginx/ssl -name '*.key' -exec chmod 600 {} +`。
-2. 把 `service.fastapiadmin.com/`（含 iis/tomcat 的 pfx/jks/password.txt）与 `*.zip` 移出仓库工作目录，只在服务器上保留 nginx 需要的 `fullchain.pem` + `privkey.pem` 两份。
+2. 把 `resnexus.example.com/`（含 iis/tomcat 的 pfx/jks/password.txt）与 `*.zip` 移出仓库工作目录，只在服务器上保留 nginx 需要的 `fullchain.pem` + `privkey.pem` 两份。
 3. 密钥交给 Docker secret / 宿主只读挂载（`docker/nginx/ssl` 已是 `:ro`，见 `docker-compose.yaml:175`，这点是对的），并在 `.gitignore` 之外加一道 pre-commit 检查防止误传。
 4. 若这些证书曾进入过镜像或构建缓存，按"已泄露"处理。
 
@@ -253,10 +253,10 @@
 
 - `docker/nginx/nginx.conf:86-87` 固定读取 `/etc/nginx/ssl/server.pem` 与 `/etc/nginx/ssl/server.key`；`docker-compose.yaml:175` 把 `./nginx/ssl` 只读挂进容器。
 - 证书实测（`openssl x509 -noout -subject -issuer -dates`）：
-  - Subject：`CN=service.fastapiadmin.com`
+  - Subject：`CN=resnexus.example.com`
   - Issuer：`C=PL/O=Asseco Data Systems S.A./CN=Certum DV TLS G2 R39 CA`
   - `notBefore=Aug 19 14:10:22 2026 GMT`，`notAfter=Mar 6 14:10:21 2027 GMT`
-  - SAN：`DNS:service.fastapiadmin.com`（单域名，无通配符）
+  - SAN：`DNS:resnexus.example.com`（单域名，无通配符）
   - `server.pem` 与 CA 交付的 `.crt` 内容一致（md5 相同），且与 `server.key` 公钥匹配（pubkey md5 相同）→ 配置与证书是配套的，这点没问题。
 - `docker/nginx/nginx.conf:73-77` 的 80 端口 server 把**所有**请求 `return 301 https://...`，其中没有 `location /.well-known/acme-challenge/` 例外 → Let's Encrypt http-01 校验会跟随 301 到 HTTPS（对同名域名通常仍可完成校验，但一旦 `server_name` 不匹配或走 IP 校验就会失败）。仓库内也没有任何 acme.sh / certbot / systemd timer / cron 配置。
 
@@ -269,7 +269,7 @@
    location /.well-known/acme-challenge/ { root /usr/share/nginx/html; allow all; }
    ```
 2. 用 acme.sh（DNS-01 或 http-01）自动签发与续期，续期钩子：
-   `acme.sh --install-cert -d service.fastapiadmin.com --key-file docker/nginx/ssl/server.key --fullchain-file docker/nginx/ssl/server.pem --reloadcmd "docker compose -f docker/docker-compose.yaml exec nginx nginx -s reload"`
+   `acme.sh --install-cert -d resnexus.example.com --key-file docker/nginx/ssl/server.key --fullchain-file docker/nginx/ssl/server.pem --reloadcmd "docker compose -f docker/docker-compose.yaml exec nginx nginx -s reload"`
 3. 加到期检查（cron 每天）：
    ```bash
    openssl x509 -in docker/nginx/ssl/server.pem -noout -checkend 1209600 || echo "证书 14 天内到期" | <告警通道>
@@ -304,7 +304,7 @@
   - `docker/nginx/web/dist/**` ≈2.55+1.91+1.53+1.38+1.33 MiB… 合计 ≈22 MiB（**死重**）
   - `backend/dist/**` ≈22 MiB（**死重**，见 L3）
   - `backend/static/swagger/**` 数 MiB（含 `.map`）
-  - `docker/nginx/ssl/**` **21 个文件**（含 `server.key`、`service.fastapiadmin.com/**/*.key`、`.zip`、`password.txt`）
+  - `docker/nginx/ssl/**` **21 个文件**（含 `server.key`、`resnexus.example.com/**/*.key`、`.zip`、`password.txt`）
 - 对比：被正确排除的有 `.git`（151 MiB）、`backend/.venv`（231 MiB）、`frontend`（1.5 GiB）、`backend/logs`（6.5 MiB）——这部分是好的。
 
 **影响**：每次构建把 68 MiB 上下文送给构建守护进程（远程 daemon / colima / BuildKit 场景下走网络），其中含生产私钥；`COPY ./backend/ .` 的改变会让 22 MiB 的 `backend/dist` 一起进镜像层。
@@ -479,7 +479,7 @@ compose 侧：
 | `OPENAI_API_KEY` | ❌ | 镜像内 `backend/env/.env.prod`（真实 key） | **blocker（B3）** |
 | `PROD_CORS_ORIGINS` | ❌ | 空 → `ALLOW_ORIGINS` 返回 `["*"]`（`setting.py:243-248`），且 `ALLOW_CREDENTIALS=True`（第 60 行） | high（同源部署下影响有限，但属于错误的生产配置） |
 | `SCHEDULER_ALLOW_CODE_EXEC` | ❌ | `True`（`setting.py:127`），注释写着"生产环境强烈建议设为 False" | high（定时任务可执行用户提交的代码块） |
-| `ALLOWED_HOSTS` | ❌ | 硬编码 `service.fastapiadmin.com` 等（`setting.py:186`），换域名即全站 400 | medium（**M14**） |
+| `ALLOWED_HOSTS` | ❌ | 硬编码 `resnexus.example.com` 等（`setting.py:186`），换域名即全站 400 | medium（**M14**） |
 | `TRUSTED_PROXY_HOPS` | ❌ | `1`（`setting.py:34`） | medium（**H2**） |
 | `DEMO_ENABLE` | ❌ | `.env.prod` 设 `True` | medium |
 | `WORKERS` | ❌ | `1`（`setting.py:33`） | medium（单 worker，注意注释提示 >1 时需确认 Redis jobstore 去重） |
@@ -492,7 +492,7 @@ compose 侧：
 | README 声明 | 实际 | 影响 |
 |-------------|------|------|
 | `:93-103` 支持 `--build-frontend`/`--skip-frontend`、`BUILD_WEB=true` | `deploy.sh:143-161` 无对应分支，未知参数被 `*)` 吞掉执行完整部署 | ⚠️ 误导，运维会以为跳过了前端构建 |
-| `:63` `NGINX_SERVER_NAME` 变量（默认 `service.fastapiadmin.com`） | `nginx.conf` 与 compose 中都不存在该变量（grep 无命中），域名在 `nginx.conf:75,83` 硬编码 | ⚠️ 换域名时按文档改 `.env` 无效 |
+| `:63` `NGINX_SERVER_NAME` 变量（默认 `resnexus.example.com`） | `nginx.conf` 与 compose 中都不存在该变量（grep 无命中），域名在 `nginx.conf:75,83` 硬编码 | ⚠️ 换域名时按文档改 `.env` 无效 |
 | `:87` "停止旧容器 → 更新代码 → 构建镜像" | `deploy.sh:5-6` 明确不再拉取代码 | ⚠️ |
 | `:219-221` "`./deploy.sh` 自动拉取最新代码" | 同上是错的 | ⚠️ 会造成"部署了但代码没更新"的误判 |
 | `:132-135` Swagger 在 `https://域名/docs`、健康检查在 `/health` | `/` 被 `nginx.conf:96-100` 指向 VitePress 官网；Swagger 实际在 `/api/v1/docs`；健康检查实际是 `/api/v1/monitor/health/check` | ⚠️ 验收地址全错 |
@@ -526,9 +526,9 @@ compose 侧：
 ### 阶段 1：代码与权限
 
 ```bash
-sudo mkdir -p /home/FastapiAdmin && sudo chown "$USER" /home/FastapiAdmin
+sudo mkdir -p /home/ResNexus && sudo chown "$USER" /home/ResNexus
 # 上传代码（scp / git）
-cd /home/FastapiAdmin
+cd /home/ResNexus
 chmod 700 docker/nginx/ssl
 find docker/nginx/ssl -name '*.key' -exec chmod 600 {} +
 ```
@@ -584,12 +584,12 @@ chmod 600 docker/nginx/ssl/server.{pem,key}
 curl https://get.acme.sh | sh -s email=ops@example.com
 ~/.acme.sh/acme.sh --issue -d "$DOMAIN" --standalone        # 需 80 端口空闲
 ~/.acme.sh/acme.sh --install-cert -d "$DOMAIN" \
-  --key-file       /home/FastapiAdmin/docker/nginx/ssl/server.key \
-  --fullchain-file /home/FastapiAdmin/docker/nginx/ssl/server.pem \
-  --reloadcmd      "cd /home/FastapiAdmin/docker && docker compose exec nginx nginx -s reload"
+  --key-file       /home/ResNexus/docker/nginx/ssl/server.key \
+  --fullchain-file /home/ResNexus/docker/nginx/ssl/server.pem \
+  --reloadcmd      "cd /home/ResNexus/docker && docker compose exec nginx nginx -s reload"
 
 # 到期巡检（cron 每天 09:00）
-# 0 9 * * * openssl x509 -in /home/FastapiAdmin/docker/nginx/ssl/server.pem -noout -checkend 1209600 \
+# 0 9 * * * openssl x509 -in /home/ResNexus/docker/nginx/ssl/server.pem -noout -checkend 1209600 \
 #   || curl -fsS "https://<告警 webhook>" -d "证书 14 天内到期"
 ```
 
@@ -598,7 +598,7 @@ curl https://get.acme.sh | sh -s email=ops@example.com
 ### 阶段 6：分层启动（不要一把梭）
 
 ```bash
-cd /home/FastapiAdmin/docker
+cd /home/ResNexus/docker
 docker compose up -d mysql redis
 until [ "$(docker inspect -f '{{.State.Health.Status}}' mysql)" = healthy ] \
    && [ "$(docker inspect -f '{{.State.Health.Status}}' redis)" = healthy ]; do sleep 3; done
@@ -616,14 +616,14 @@ docker compose ps
 ### 阶段 7：备份（上线前先建好，别等出事）
 
 ```bash
-mkdir -p /home/FastapiAdmin/backups
-cat > /home/FastapiAdmin/backup.sh <<'EOF'
+mkdir -p /home/ResNexus/backups
+cat > /home/ResNexus/backup.sh <<'EOF'
 #!/bin/bash
 set -euo pipefail
-cd /home/FastapiAdmin/docker
+cd /home/ResNexus/docker
 set -a; source .env; set +a
 STAMP=$(date +%Y%m%d-%H%M%S)
-OUT=/home/FastapiAdmin/backups
+OUT=/home/ResNexus/backups
 
 docker compose exec -T mysql sh -c \
   'exec mysqldump --single-transaction --routines --triggers --default-character-set=utf8mb4 -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"' \
@@ -639,11 +639,11 @@ find "$OUT" -maxdepth 1 -name 'nginx-*' -mtime +14 -delete
 find "$OUT" -maxdepth 1 -name 'redis-*' -mtime +14 -delete
 echo "backup done: $STAMP"
 EOF
-chmod +x /home/FastapiAdmin/backup.sh
-/home/FastapiAdmin/backup.sh                # 立即跑一次验证可执行
+chmod +x /home/ResNexus/backup.sh
+/home/ResNexus/backup.sh                # 立即跑一次验证可执行
 
 # cron：每天 02:30
-# 30 2 * * * /home/FastapiAdmin/backup.sh >> /home/FastapiAdmin/backups/cron.log 2>&1
+# 30 2 * * * /home/ResNexus/backup.sh >> /home/ResNexus/backups/cron.log 2>&1
 ```
 
 **恢复演练（每季度做一次，否则备份等于没有）**：
@@ -652,7 +652,7 @@ chmod +x /home/FastapiAdmin/backup.sh
 # 1) 停后端（避免写入竞争），保留 MySQL
 docker compose stop backend
 # 2) 恢复
-gunzip -c /home/FastapiAdmin/backups/db-<STAMP>.sql.gz | \
+gunzip -c /home/ResNexus/backups/db-<STAMP>.sql.gz | \
   docker compose exec -T mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
 # 3) 起后端并验证
 docker compose start backend
@@ -722,7 +722,7 @@ nc -z -w3 <公网IP> 3306; nc -z -w3 <公网IP> 6379; nc -z -w3 <公网IP> 8001
 ## 7. 复现本审计的方法
 
 ```bash
-cd /Users/tao/workspace/FastapiAdmin
+cd /Users/tao/workspace/ResNexus
 
 # 组件版本
 docker version            # Client 29.8.0 (context: colima) / Server 29.5.2
@@ -755,7 +755,7 @@ ls -laR ../.github/
 # 构建上下文体积（按 .dockerignore 规则静态统计）
 python3 - <<'PY'
 import os
-root='/Users/tao/workspace/FastapiAdmin'
+root='/Users/tao/workspace/ResNexus'
 ig={'.git','frontend','.venv','node_modules','logs','.ruff_cache','.mypy_cache','.pytest_cache','__pycache__','.vscode','.idea','.codebuddy','.workbuddy','.agent-teams'}
 t=0
 for dp,dns,fns in os.walk(root):
@@ -784,8 +784,8 @@ PY
 | `docker buildx version` | `docker: unknown command: docker buildx` |
 | `docker info` | Containers 0 / Images 23 / Logging Driver json-file / Cgroup Version 2 |
 | `cd docker && docker-compose config` | 退出码 **0**；输出含 `name: docker`、backend `platform: linux/amd64`、`image: backend:3.0.0`、`FORWARDED_ALLOW_IPS: '*'`、mysql healthcheck 中口令被展开为明文；`grep -c host_ip` = **0** |
-| `openssl x509 -in docker/nginx/ssl/server.pem -noout -subject -issuer -dates` | `subject= /CN=service.fastapiadmin.com`；`issuer= /C=PL/O=Asseco Data Systems S.A./CN=Certum DV TLS G2 R39 CA`；`notBefore=Aug 19 14:10:22 2026 GMT`；`notAfter=Mar 6 14:10:21 2027 GMT`；SAN `DNS:service.fastapiadmin.com`；`-checkend 0` → not expired |
-| 证书/私钥配套性 | `server.pem`、`service.fastapiadmin.com/nginx/*.crt`、`.../pem/*.pem` md5 均为 `f308d6601a5521014d9a4b205c89efeb`；`server.pem` 公钥 md5 与 `server.key` 公钥 md5 一致（`4d0165b5c7a158d519cd29fd6a6f699a`） |
+| `openssl x509 -in docker/nginx/ssl/server.pem -noout -subject -issuer -dates` | `subject= /CN=resnexus.example.com`；`issuer= /C=PL/O=Asseco Data Systems S.A./CN=Certum DV TLS G2 R39 CA`；`notBefore=Aug 19 14:10:22 2026 GMT`；`notAfter=Mar 6 14:10:21 2027 GMT`；SAN `DNS:resnexus.example.com`；`-checkend 0` → not expired |
+| 证书/私钥配套性 | `server.pem`、`resnexus.example.com/nginx/*.crt`、`.../pem/*.pem` md5 均为 `f308d6601a5521014d9a4b205c89efeb`；`server.pem` 公钥 md5 与 `server.key` 公钥 md5 一致（`4d0165b5c7a158d519cd29fd6a6f699a`） |
 | `ls -l` | `docker/.env` 0644；`docker/nginx/ssl/server.key` 0666；`.../nginx/*.key` 0666；`iis/password.txt`、`tomcat/password.txt` 各 6 字节 |
 | `git ls-files docker/`（滤除前端产物） | 仅 `.env.example`、`README.md`、`Dockerfile`、`docker-compose.yaml`、`mysql/.gitkeep`、`mysql/data/.gitkeep`、`mysql/init/.gitkeep`、`nginx.conf`、`nginx/ssl/.gitkeep`、`redis/.gitkeep`、`redis/conf/redis.conf`、`redis/data/.gitkeep` —— **无 `.env`、无证书** |
 | `git ls-files backend/requirements/` | 空（`git status`：`?? backend/requirements/`） |

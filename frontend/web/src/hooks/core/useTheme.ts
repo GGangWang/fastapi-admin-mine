@@ -28,7 +28,7 @@
  * ```
  *
  * @module useTheme
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 
 import { SystemThemeEnum } from "@/enums/appEnum";

@@ -126,11 +126,20 @@
   "setting": {
     "menuType": {
       "title": "Menu Layout",
-      "list": ["Vertical", "Horizontal", "Mixed", "Dual"]
+      "list": [
+        "Vertical",
+        "Horizontal",
+        "Mixed",
+        "Dual"
+      ]
     },
     "theme": {
       "title": "Theme Style",
-      "list": ["Light", "Dark", "System"]
+      "list": [
+        "Light",
+        "Dark",
+        "System"
+      ]
     },
     "menu": {
       "title": "Menu Style"
@@ -140,11 +149,17 @@
     },
     "box": {
       "title": "Box Style",
-      "list": ["Border", "Shadow"]
+      "list": [
+        "Border",
+        "Shadow"
+      ]
     },
     "container": {
       "title": "Container Width",
-      "list": ["Full", "Boxed"]
+      "list": [
+        "Full",
+        "Boxed"
+      ]
     },
     "basics": {
       "title": "Basic Config",
@@ -198,11 +213,20 @@
   "settings": {
     "menuType": {
       "title": "Menu Layout",
-      "list": ["Vertical", "Horizontal", "Mixed", "Dual"]
+      "list": [
+        "Vertical",
+        "Horizontal",
+        "Mixed",
+        "Dual"
+      ]
     },
     "theme": {
       "title": "Theme Style",
-      "list": ["Light", "Dark", "System"]
+      "list": [
+        "Light",
+        "Dark",
+        "System"
+      ]
     },
     "menu": {
       "title": "Menu Style"
@@ -212,11 +236,17 @@
     },
     "box": {
       "title": "Box Style",
-      "list": ["Border", "Shadow"]
+      "list": [
+        "Border",
+        "Shadow"
+      ]
     },
     "container": {
       "title": "Container Width",
-      "list": ["Full", "Boxed"]
+      "list": [
+        "Full",
+        "Boxed"
+      ]
     },
     "basics": {
       "title": "Basic Config",
@@ -309,9 +339,15 @@
   "notice": {
     "title": "Notice",
     "btnRead": "Mark as read",
-    "bar": ["Notice", "Message", "Todo"],
+    "bar": [
+      "Notice",
+      "Message",
+      "Todo"
+    ],
     "empty": "No notifications",
-    "text": ["No"],
+    "text": [
+      "No"
+    ],
     "viewAll": "View all"
   },
   "worktab": {
@@ -693,5 +729,42 @@
     "pageError": "Sorry, the page you visited does not exist.",
     "networkError": "Sorry, the server reported an error.",
     "returnToHome": "Return to home"
+  },
+  "dictionary": {
+    "title": "Dictionaries",
+    "add": "Add",
+    "back": "Back to parent",
+    "reload": "Reload",
+    "export": "Export current level",
+    "exportTree": "Export dictionary trees",
+    "refreshCache": "Refresh dictionary cache",
+    "enumReadonly": "Enum dictionaries are defined in code and are read-only",
+    "name": "Name",
+    "code": "Code",
+    "level": "Level",
+    "sort": "Sort",
+    "source": "Source",
+    "status": "Status",
+    "default": "Default",
+    "description": "Description",
+    "actions": "Actions",
+    "database": "Database",
+    "enum": "Enum",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "yes": "Yes",
+    "no": "No",
+    "children": "Open children",
+    "detail": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "preview": "Tree preview",
+    "choosePath": "Cascading selection (lazy loading)",
+    "cssClass": "CSS class",
+    "listClass": "Tag style",
+    "required": "This field is required",
+    "saved": "Operation succeeded",
+    "confirmDelete": "Delete dictionary \"{name}\"? Nodes with children cannot be deleted.",
+    "parent": "Parent node"
   }
 }

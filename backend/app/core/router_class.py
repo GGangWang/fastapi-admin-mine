@@ -126,7 +126,16 @@ class OperationLogRoute(APIRoute):
                     "description": (route.summary or "") if route else "",
                     "request_ip": get_client_ip(request),
                 }
-                response.background = BackgroundTask(_write_operation_log_async, log_data)
+                session = getattr(request.state, "database_session", None)
+                if session is not None:
+                    # Request-scoped dependencies outlive response background
+                    # tasks. Opening another DB session there can exhaust a
+                    # one-connection pool or wait on SQLite's uncommitted writer.
+                    async def write_log_after_commit():
+                        await _write_operation_log_async(log_data)
+                    session.info.setdefault("after_commit_callbacks", {})["operation_log"] = write_log_after_commit
+                else:
+                    response.background = BackgroundTask(_write_operation_log_async, log_data)
             except Exception:
                 logger.warning("操作日志采集异常: {}", request.url.path, exc_info=True)
             return response

@@ -1,491 +1,588 @@
-<!-- 字典管理：左侧字典类型列表 + 右侧字典数据面板 -->
 <template>
-  <div class="fa-full-height">
-    <ElSplitter :style="'height: 100%'">
-      <!-- Left: Dict Type -->
-      <ElSplitterPanel size="30%" :min="320">
-        <div class="flex flex-col h-full overflow-hidden pr-2">
-          <FaSearchBar
-            v-show="showSearchBar"
-            ref="searchBarRef"
-            v-model="searchForm"
-            :items="dictTypeSearchItems"
-            :rules="searchBarRules"
-            :is-expand="false"
-            :show-expand="true"
-            :show-reset="true"
-            :show-search="true"
-            :disabled-search="false"
-            :default-expanded="false"
-            @search="handleSearchBarSearch"
-            @reset="onResetSearch"
-          />
-
-          <ElCard class="fa-table-card" :style="{ 'margin-top': showSearchBar ? '12px' : '0' }">
-            <FaTableHeader
-              v-model:columns="columnChecks"
-              v-model:showSearchBar="showSearchBar"
-              :loading="loading"
-              @refresh="refreshData"
+  <div class="fa-full-height flex flex-col gap-3">
+    <ElBreadcrumb separator="/" class="px-2 py-2">
+      <ElBreadcrumbItem v-for="node in breadcrumb" :key="node.id" @click="navigate(node.id)">
+        <a>{{ node.dict_name }}</a>
+      </ElBreadcrumbItem>
+    </ElBreadcrumb>
+    <FaSearchBar
+      v-model="search"
+      :items="searchItems"
+      :is-expand="false"
+      @search="searchRows"
+      @reset="resetSearch"
+    />
+    <ElCard class="fa-table-card flex-1 min-h-0">
+      <FaTableHeader :loading="loading" layout="refresh" @refresh="loadRows">
+        <template #left>
+          <FaTableHeaderLeft>
+            <ElButton
+              v-if="!parent?.readonly"
+              v-hasPerm="
+                parent ? 'module_system:dict_data:create' : 'module_system:dict_type:create'
+              "
+              type="primary"
+              :icon="Plus"
+              plain
+              @click="openForm()"
+              >{{ t("dictionary.add") }}</ElButton
             >
-              <template #left>
-                <FaTableHeaderLeft
-                  :perm-create="['module_system:dict_type:create']"
-                  @add="handleAdd"
-                />
-              </template>
-            </FaTableHeader>
-
-            <FaTable
-              ref="faTableRef"
-              :loading="loading"
-              :data="data"
-              :columns="columns"
-              :pagination="pagination"
-              :row-class-name="dictTypeRowClassName"
-              @row-click="handleDictTypeRowClick"
-              @pagination:size-change="handleSizeChange"
-              @pagination:current-change="handleCurrentChange"
+            <ElButton
+              v-if="parent"
+              :icon="Back"
+              plain
+              @click="navigate(parent.parent_id ?? undefined)"
+            >
+              {{ t("dictionary.back") }}
+            </ElButton>
+            <ElButton
+              v-hasPerm="
+                parent ? 'module_system:dict_data:export' : 'module_system:dict_type:export'
+              "
+              type="warning"
+              :icon="Download"
+              plain
+              @click="exportFile(false)"
+              >{{ t("dictionary.export") }}</ElButton
+            >
+            <ElButton
+              v-if="!parent"
+              v-hasPerm="'module_system:dict_type:export'"
+              type="warning"
+              :icon="Share"
+              plain
+              @click="exportFile(true)"
+              >{{ t("dictionary.exportTree") }}</ElButton
+            >
+            <ElButton
+              v-hasPerm="'module_system:dict_type:update'"
+              type="danger"
+              :icon="Refresh"
+              plain
+              @click="refreshCache"
+              >{{ t("dictionary.refreshCache") }}</ElButton
+            >
+            <ElTag v-if="parent?.readonly" type="info">{{ t("dictionary.enumReadonly") }}</ElTag>
+          </FaTableHeaderLeft>
+        </template>
+      </FaTableHeader>
+      <FaTable
+        :data="rows"
+        :columns="columns"
+        :loading="loading"
+        :pagination="pagination"
+        row-key="id"
+        disable-row-drag
+        @pagination:current-change="changePage"
+        @pagination:size-change="changeSize"
+      >
+        <template #name="{ row }">
+          <ElTag v-if="row.list_class" :type="tagType(row.list_class)">{{ row.dict_name }}</ElTag>
+          <span v-else>{{ row.dict_name }}</span>
+        </template>
+        <template #source="{ row }"
+          ><ElTag :type="row.readonly ? 'info' : 'primary'">{{
+            pageDict.label(DictTypeEnum.SYS_DICT_SOURCE, row.source)
+          }}</ElTag></template
+        >
+        <template #status="{ row }"
+          ><ElTag :type="row.status === 0 ? 'success' : 'danger'">{{
+            pageDict.label(DictTypeEnum.SYS_ENABLE_STATUS, row.status)
+          }}</ElTag></template
+        >
+        <template #isDefault="{ row }">{{
+          pageDict.label(DictTypeEnum.SYS_TRUE_FALSE, row.is_default)
+        }}</template>
+        <template #actions="{ row }">
+          <ElTooltip :content="t('dictionary.children')" placement="top">
+            <FaButtonTable
+              type="add"
+              icon="ri:node-tree"
+              role="button"
+              :aria-label="t('dictionary.children')"
+              @click="navigate(row.id)"
             />
-          </ElCard>
-        </div>
-      </ElSplitterPanel>
-
-      <!-- Right: Dict Data -->
-      <ElSplitterPanel :min="300">
-        <div class="flex flex-col h-full overflow-hidden pl-2">
-          <DictDataPanel
-            :key="currentDictTypeId"
-            :dict-type="currentDictType"
-            :dict-label="currentDictLabel"
-            :dict-type-id="currentDictTypeId"
-          />
-        </div>
-      </ElSplitterPanel>
-    </ElSplitter>
-
-    <!-- Dict Type CRUD Dialogs -->
+          </ElTooltip>
+          <ElTooltip :content="t('dictionary.detail')" placement="top">
+            <FaButtonTable
+              type="view"
+              role="button"
+              :aria-label="t('dictionary.detail')"
+              @click="openForm(row, true)"
+            />
+          </ElTooltip>
+          <ElTooltip v-if="!row.readonly" :content="t('dictionary.edit')" placement="top">
+            <FaButtonTable
+              v-hasPerm="
+                row.dict_level === 0
+                  ? 'module_system:dict_type:update'
+                  : 'module_system:dict_data:update'
+              "
+              type="edit"
+              role="button"
+              :aria-label="t('dictionary.edit')"
+              @click="openForm(row)"
+            />
+          </ElTooltip>
+          <ElTooltip v-if="!row.readonly" :content="t('dictionary.delete')" placement="top">
+            <FaButtonTable
+              v-hasPerm="
+                row.dict_level === 0
+                  ? 'module_system:dict_type:delete'
+                  : 'module_system:dict_data:delete'
+              "
+              type="delete"
+              role="button"
+              :aria-label="t('dictionary.delete')"
+              @click="remove(row)"
+            />
+          </ElTooltip>
+          <ElTooltip v-if="row.dict_level === 0" :content="t('dictionary.preview')" placement="top">
+            <FaButtonTable
+              type="more"
+              icon="ri:organization-chart"
+              role="button"
+              :aria-label="t('dictionary.preview')"
+              @click="preview(row)"
+            />
+          </ElTooltip>
+        </template>
+      </FaTable>
+    </ElCard>
     <FaDialog
-      v-model="dialogVisible.visible"
-      :title="dialogVisible.title"
-      width="640px"
-      dialog-class="crud-embed-dialog"
-      modal-class="crud-embed-dialog"
-      :form-mode="dialogVisible.type"
-      :confirm-loading="submitLoading"
-      @cancel="handleCloseDialog"
-      @close="handleCloseDialog"
-      @confirm="handleSubmit()"
+      v-model="dialog"
+      :title="dialogTitle"
+      width="680px"
+      :form-mode="readOnly ? 'detail' : editing ? 'update' : 'create'"
+      :confirm-loading="saving"
+      @confirm="save"
+      @cancel="dialog = false"
     >
-      <template v-if="dialogVisible.type === 'detail'">
-        <FaDescriptions
-          :column="4"
-          :data="detailFormData"
-          :items="dictDetailItems"
-          max-height="70vh"
-        >
-          <template #dict_type="{ row }">
-            <FaStatusTag type="primary" :label="(row as unknown as DictTable)?.dict_type" />
-          </template>
-        </FaDescriptions>
-      </template>
-      <template v-else>
-        <FaForm
-          :key="dictFormRenderKey"
-          scrollbar
-          max-height="70vh"
-          ref="dataFormRef"
-          v-model="formData"
-          :items="dictDialogFormItems"
-          :rules="rules"
-          label-suffix=":"
-          :label-width="100"
-          label-position="right"
-          :span="24"
-          :gutter="16"
-          :show-reset="false"
-          :show-submit="false"
-          class="crud-dialog-art-form"
-        >
-        </FaForm>
-      </template>
+      <ElAlert
+        v-if="readOnly"
+        :title="editing?.readonly ? t('dictionary.enumReadonly') : t('dictionary.detail')"
+        type="info"
+        :closable="false"
+        class="mb-3"
+      />
+      <FaForm
+        ref="formRef"
+        v-model="form"
+        :items="formItems"
+        :rules="rules"
+        :disabled="readOnly"
+        :show-reset="false"
+        :show-submit="false"
+        :span="24"
+        :label-width="110"
+      />
+    </FaDialog>
+    <FaDialog
+      v-model="treeDialog"
+      :title="t('dictionary.preview')"
+      width="720px"
+      form-mode="detail"
+      @cancel="treeDialog = false"
+    >
+      <ElTree
+        v-if="previewRoot"
+        :key="previewRoot.id"
+        :data="[previewRoot]"
+        node-key="id"
+        lazy
+        :load="loadTree"
+        :props="{ label: 'dict_name', isLeaf: 'leaf' }"
+      />
+      <div class="mt-4">{{ t("dictionary.choosePath") }}</div>
+      <ElCascader
+        v-if="previewRoot"
+        :key="`select:${previewRoot.id}`"
+        v-model="selectedPath"
+        class="w-full mt-2"
+        :options="[asOption(previewRoot)]"
+        :props="cascaderProps"
+        clearable
+      />
+      <div class="mt-2 text-sm">{{ selectedPath.join(" / ") }}</div>
     </FaDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useCrudForm } from "@/hooks/core/useCrudForm";
-import DictAPI, { type DictForm, type DictTable } from "@/api/module_system/dict";
-import { useDictStore } from "@stores";
-import { renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@utils";
-import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
-import type FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
+import { Back, Download, Plus, Refresh, Share } from "@element-plus/icons-vue";
+
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([
+  DictTypeEnum.SYS_DICT_SOURCE,
+  DictTypeEnum.SYS_ENABLE_STATUS,
+  DictTypeEnum.SYS_TRUE_FALSE,
+]);
+
+import { computed, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { ElMessage, ElMessageBox } from "element-plus";
+import type { CascaderProps } from "element-plus";
+import type { LoadFunction } from "element-plus/es/components/tree/src/tree.type";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
-import FaForm from "@/components/forms/fa-form/index.vue";
-import DictDataPanel from "./components/DictDataPanel.vue";
-import FaStatusTag from "@/components/display/fa-status-tag/index.vue";
-import FaTableHeader from "@/components/tables/fa-table-header/index.vue";
-import FaDescriptions from "@/components/display/fa-descriptions/index.vue";
+import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
+import DictAPI, {
+  type DictNode,
+  type DictNodeId,
+  type DictNodeQuery,
+  type DictNodeWrite,
+} from "@/api/module_system/dict";
+import { useDictStore } from "@stores";
 
-defineOptions({
-  name: "Dict",
-  inheritAttrs: false,
-});
-
-type DictTypeSearchForm = {
-  dict_name?: string;
-  dict_type?: string;
-};
-
+defineOptions({ name: "Dict" });
+const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 const dictStore = useDictStore();
-
-const searchForm = ref<DictTypeSearchForm>({
-  dict_name: undefined,
-  dict_type: undefined,
-});
-
-const showSearchBar = ref(true);
-const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
-const searchBarRules: Record<string, unknown> = {};
-
-const dictTypeSearchItems = computed<SearchFormItem[]>(() => [
+const rows = ref<DictNode[]>([]);
+const breadcrumb = ref<DictNode[]>([]);
+const parent = computed(() => breadcrumb.value.at(-1));
+const search = ref<Record<string, any>>({});
+const pagination = ref({ current: 1, size: 10, total: 0 });
+const loading = ref(false);
+const saving = ref(false);
+const dialog = ref(false);
+const readOnly = ref(false);
+const editing = ref<DictNode>();
+const formRef = ref<{ validate: () => Promise<boolean> }>();
+const form = ref<Record<string, any>>({});
+let requestVersion = 0;
+const columns = computed(() => [
   {
-    label: "字典名称",
-    key: "dict_name",
-    type: "input",
-    placeholder: "请输入字典名称",
-    clearable: true,
-    span: 8,
+    prop: "dict_name",
+    label: t("dictionary.name"),
+    useSlot: true,
+    slotName: "name",
+    minWidth: 160,
+    align: "center",
   },
   {
-    label: "字典类型",
-    key: "dict_type",
-    type: "input",
-    placeholder: "请输入字典类型",
-    clearable: true,
-    span: 8,
+    prop: "dict_code",
+    label: t("dictionary.code"),
+    minWidth: 150,
+    formatter: (row: DictNode) => row.dict_code,
+    align: "center",
+  },
+  {
+    prop: "dict_level",
+    label: t("dictionary.level"),
+    width: 70,
+    formatter: (row: DictNode) => row.dict_level,
+    align: "center",
+  },
+  {
+    prop: "dict_sort",
+    label: t("dictionary.sort"),
+    width: 70,
+    formatter: (row: DictNode) => row.dict_sort,
+    align: "center",
+  },
+  {
+    prop: "source",
+    label: t("dictionary.source"),
+    useSlot: true,
+    slotName: "source",
+    width: 100,
+    align: "center",
+  },
+  {
+    prop: "status",
+    label: t("dictionary.status"),
+    useSlot: true,
+    slotName: "status",
+    width: 85,
+    align: "center",
+  },
+  {
+    prop: "is_default",
+    label: t("dictionary.default"),
+    useSlot: true,
+    slotName: "isDefault",
+    width: 85,
+  },
+  {
+    prop: "description",
+    label: t("dictionary.description"),
+    minWidth: 130,
+    formatter: (row: DictNode) => row.description ?? "",
+  },
+  {
+    prop: "actions",
+    label: t("dictionary.actions"),
+    useSlot: true,
+    slotName: "actions",
+    width: 300,
+    fixed: "right" as const,
   },
 ]);
-
-const faTableRef = ref<{ elTableRef?: { clearSelection: () => void } } | null>(null);
-
-const createLoading = ref(false);
-const statusUpdating = ref<Set<number>>(new Set());
-
-// ─── 对话框状态 ───
-const { dialogVisible } = useCrudDialog();
-
-const detailFormData = ref<DictTable>({});
-
-const dictDetailItems: import("@/components/display/fa-descriptions/index.vue").DescriptionsItem[] =
-  [
-    { label: "字典名称", prop: "dict_name" },
-    { label: "字典类型", prop: "dict_type", slot: "dict_type" },
-    {
-      label: "状态",
-      prop: "status",
-      tag: {
-        map: { "0": { type: "success", text: "启用" }, "1": { type: "danger", text: "停用" } },
-      },
+const statusOptions = computed(() => pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"));
+const searchItems = computed<SearchFormItem[]>(() => [
+  { key: "dict_name", label: t("dictionary.name"), type: "input", span: 6 },
+  { key: "dict_code", label: t("dictionary.code"), type: "input", span: 6 },
+  {
+    key: "source",
+    label: t("dictionary.source"),
+    type: "select",
+    props: {
+      clearable: true,
+      options: pageDict.options(DictTypeEnum.SYS_DICT_SOURCE),
     },
-    { label: "描述", prop: "description" },
-    { label: "创建时间", prop: "created_time" },
-    { label: "更新时间", prop: "updated_time" },
-  ];
-
-const formData = ref<DictForm>({
-  id: undefined,
-  dict_name: "",
-  dict_type: "",
-  status: 0,
-  description: undefined,
-});
-
-const rules = reactive({
-  dict_name: [{ required: true, message: "请输入字典名称", trigger: "blur" }],
-  dict_type: [{ required: true, message: "请选择字典类型", trigger: "blur" }],
-  status: [{ required: true, message: "请选择字典状态", trigger: "blur" }],
-});
-
-const dataFormRef = ref<InstanceType<typeof FaForm> | null>(null);
-const dictFormRenderKey = ref(0);
-
-function createInitialFormData(): DictForm {
-  return {
-    id: undefined,
-    dict_name: "",
-    dict_type: "",
-    status: 0,
-    description: undefined,
-  };
-}
-
-const initialFormData = createInitialFormData();
-
-// ─── CRUD 表单 ───
-const { submitLoading, handleCloseDialog, handleOpenDialog, handleSubmit } = useCrudForm<DictForm>({
-  formData,
-  initialFormData,
-  dialogVisible,
-  dataFormRef,
-  formRenderKey: dictFormRenderKey,
-  detailApi: DictAPI.detailDictType,
-  createApi: DictAPI.createDictType,
-  updateApi: DictAPI.updateDictType,
-  titles: { create: "新增字典", update: "修改字典", detail: "字典详情" },
-  detailFormData,
-  onCreateSuccess: async () => {
-    await refreshCreate();
-  },
-  onUpdateSuccess: async () => {
-    await refreshUpdate();
-  },
-  onSubmitSuccess: async () => {
-    dictStore.clearDictData();
-    if (formData.value.dict_type) {
-      await dictStore.getDict([formData.value.dict_type]);
-    }
-  },
-});
-
-async function handleAdd() {
-  createLoading.value = true;
-  try {
-    await handleOpenDialog("create");
-  } finally {
-    createLoading.value = false;
-  }
-}
-
-const dictDialogFormItems = computed<FormItem[]>(() => [
-  {
-    label: "字典名称",
-    key: "dict_name",
-    type: "input",
-    props: { placeholder: "请输入字典名称", maxlength: 50 },
+    span: 6,
   },
   {
-    label: "字典类型",
-    key: "dict_type",
-    type: "input",
-    props: { placeholder: "请输入字典类型", maxlength: 50 },
-  },
-  {
-    label: "状态",
     key: "status",
-    type: "radiogroup",
+    label: t("dictionary.status"),
+    type: "select",
+    props: { clearable: true, options: statusOptions.value },
+    span: 6,
+  },
+]);
+const formItems = computed<FormItem[]>(() => [
+  { key: "dict_name", label: t("dictionary.name"), type: "input", props: { maxlength: 255 } },
+  { key: "dict_code", label: t("dictionary.code"), type: "input", props: { maxlength: 255 } },
+  {
+    key: "parent_path",
+    label: t("dictionary.parent"),
+    type: "cascader",
+    hidden: !form.value.parent_id || readOnly.value,
     props: {
-      options: [
-        { label: "启用", value: 0 },
-        { label: "停用", value: 1 },
-      ],
+      options: breadcrumb.value[0] ? [asOption(breadcrumb.value[0])] : [],
+      props: parentCascaderProps,
+      clearable: false,
     },
   },
   {
-    label: "描述",
-    key: "description",
-    type: "input",
+    key: "dict_sort",
+    label: t("dictionary.sort"),
+    type: "number",
+    props: { min: 0, precision: 0 },
+  },
+  {
+    key: "status",
+    label: t("dictionary.status"),
+    type: "radiogroup",
+    props: { options: statusOptions.value },
+  },
+  {
+    key: "is_default",
+    label: t("dictionary.default"),
+    type: "switch",
+    hidden: !form.value.parent_id,
+  },
+  { key: "css_class", label: t("dictionary.cssClass"), type: "input" },
+  {
+    key: "list_class",
+    label: t("dictionary.listClass"),
+    type: "select",
     props: {
-      type: "textarea",
-      rows: 4,
-      maxlength: 100,
-      showWordLimit: true,
-      placeholder: "请输入描述",
+      clearable: true,
+      options: ["primary", "success", "info", "warning", "danger"].map((value) => ({
+        value,
+        label: value,
+      })),
     },
+  },
+  {
+    key: "description",
+    label: t("dictionary.description"),
+    type: "input",
+    props: { type: "textarea", rows: 3, maxlength: 2000 },
   },
 ]);
+const rules = computed(() => ({
+  dict_name: [{ required: true, message: t("dictionary.required"), trigger: "blur" }],
+  dict_code: [{ required: true, message: t("dictionary.required"), trigger: "blur" }],
+}));
+const dialogTitle = computed(() =>
+  t(readOnly.value ? "dictionary.detail" : editing.value ? "dictionary.edit" : "dictionary.add")
+);
 
-const {
-  columns,
-  columnChecks,
-  data,
-  loading,
-  pagination,
-  getData,
-  replaceSearchParams,
-  resetSearchParams,
-  handleSizeChange,
-  handleCurrentChange,
-  refreshData,
-  refreshCreate,
-  refreshUpdate,
-  refreshRemove,
-} = useTable({
-  core: {
-    apiFn: DictAPI.listDictType,
-    apiParams: {
-      page_no: 1,
-      page_size: 10,
-    },
-    columnsFactory: resolveStatusColumns<DictTable>(() => [
-      { type: "globalIndex", width: 56, label: "序号" },
-      { prop: "dict_name", label: "字典名称", minWidth: 100, showOverflowTooltip: true },
-      {
-        prop: "dict_type",
-        label: "字典类型",
-        minWidth: 120,
-        formatter: (row: DictTable) =>
-          h(FaStatusTag, { type: "primary", label: row.dict_type ?? "" }),
-      },
-      {
-        prop: "status",
-        label: "状态",
-        width: 80,
-        formatter: (row: DictTable) =>
-          h(ElSwitch, {
-            modelValue: row.status ?? 0,
-            "onUpdate:modelValue": (val: string | number | boolean) =>
-              handleDictTypeStatusChange(row.id!, Number(val)),
-            activeValue: 0,
-            inactiveValue: 1,
-            loading: statusUpdating.value.has(row.id!),
-            inlinePrompt: true,
-          }),
-      },
-      {
-        prop: "operation",
-        label: "操作",
-        width: 180,
-        fixed: "right",
-        align: "center",
-        formatter: (row: DictTable) => formatDictOperationCell(row),
-      },
-    ]),
-  },
-});
-
-// ─── 右侧面板状态 ───
-const currentDictType = ref("");
-const currentDictLabel = ref("");
-const currentDictTypeId = ref(0);
-const hasAutoSelected = ref(false);
-const selectedDictRowId = ref<number | null>(null);
-
-function dictTypeRowClassName({ row }: { row: DictTable }) {
-  return row?.id === selectedDictRowId.value ? "dict-type-row-selected" : "";
-}
-
-function handleDictTypeRowClick(row: DictTable) {
-  selectedDictRowId.value = row.id ?? null;
-  currentDictType.value = row.dict_type || "";
-  currentDictLabel.value = row.dict_name || "";
-  currentDictTypeId.value = row.id ?? 0;
-}
-
-async function handleSearchBarSearch(params: DictTypeSearchForm) {
-  await searchBarRef.value?.validate?.();
-  replaceSearchParams({
-    dict_name: params.dict_name,
-    dict_type: params.dict_type,
-  } as Record<string, unknown>);
-  await getData();
-}
-
-function onResetSearch() {
-  searchForm.value = {
-    dict_name: undefined,
-    dict_type: undefined,
+function currentQuery(): DictNodeQuery {
+  return {
+    ...search.value,
+    parent_id: route.query.parent ? String(route.query.parent) : undefined,
+    page_no: pagination.value.current,
+    page_size: pagination.value.size,
   };
-  void resetSearchParams();
 }
-
-async function handleOpenDictTypeDetail(id: number) {
-  dialogVisible.title = "字典详情";
-  dialogVisible.type = "detail";
-  const res = await DictAPI.detailDictType(id);
-  const data = (res.data?.data ?? {}) as DictTable;
-  Object.assign(detailFormData.value, data);
-  dialogVisible.visible = true;
-}
-
-function buildDictRowActions(row: DictTable): TableOperationAction[] {
-  const all: TableOperationAction[] = [
-    {
-      key: "detail",
-      label: "详情",
-      artType: "view",
-      perm: "module_system:dict_type:detail",
-      run: () => void handleOpenDictTypeDetail(row.id!),
-    },
-    {
-      key: "edit",
-      label: "编辑",
-      artType: "edit",
-      icon: "ri:edit-2-line",
-      perm: "module_system:dict_type:update",
-      run: () => void handleOpenDialog("update", row.id),
-    },
-    {
-      key: "delete",
-      label: "删除",
-      artType: "delete",
-      icon: "ri:delete-bin-4-line",
-      perm: "module_system:dict_type:delete",
-      run: () => {
-        if (row.id != null) deleteDictTypeRow(row.id, row.dict_name ?? "");
-      },
-    },
-  ];
-  return all;
-}
-
-function formatDictOperationCell(row: DictTable) {
-  return renderTableOperationCell(buildDictRowActions(row), {
-    wrapperClass: "inline-flex flex-wrap items-center justify-end gap-1 dict-table-actions",
-  });
-}
-
-async function deleteDictTypeRow(id: number, name: string) {
+async function loadRows() {
+  const version = ++requestVersion;
+  loading.value = true;
   try {
-    await confirmDelete(`确定删除「${name}」吗？`);
-    await DictAPI.deleteDictType([id]);
-    dictStore.clearDictData();
-    const dictTypes = Object.keys(dictStore.dictData);
-    if (dictTypes.length > 0) await dictStore.getDict(dictTypes);
-
-    // 如果删的是当前选中的行，清空右侧面板
-    if (id === currentDictTypeId.value) {
-      currentDictTypeId.value = 0;
-      currentDictType.value = "";
-      currentDictLabel.value = "";
-      selectedDictRowId.value = null;
-    }
-
-    await refreshRemove();
-  } catch {
-    // 用户取消
-  }
-}
-
-async function handleDictTypeStatusChange(id: number, newStatus: number) {
-  statusUpdating.value = new Set([...statusUpdating.value, id]);
-  try {
-    await DictAPI.batchDictType({ ids: [id], status: newStatus });
-    await refreshData();
-    dictStore.clearDictData();
-    const dictTypes = Object.keys(dictStore.dictData);
-    if (dictTypes.length > 0) await dictStore.getDict(dictTypes);
-  } catch {
-    await refreshData();
+    const query = currentQuery();
+    const [listResponse, pathResponse] = await Promise.all([
+      DictAPI.listNodes(query),
+      query.parent_id ? DictAPI.ancestors(query.parent_id) : Promise.resolve(undefined),
+    ]);
+    if (version !== requestVersion) return;
+    rows.value = listResponse.data.data.items;
+    pagination.value.total = listResponse.data.data.total;
+    breadcrumb.value = pathResponse?.data.data ?? [];
   } finally {
-    const next = new Set(statusUpdating.value);
-    next.delete(id);
-    statusUpdating.value = next;
+    if (version === requestVersion) loading.value = false;
   }
 }
-
-// 初始加载后自动选中第一行
-watch(data, (newData) => {
-  if (newData && newData.length > 0 && !hasAutoSelected.value) {
-    const firstRow = newData[0]!;
-    handleDictTypeRowClick(firstRow);
-    hasAutoSelected.value = true;
+function navigate(key?: DictNodeId) {
+  router.push({ path: route.path, query: key === undefined ? {} : { parent: String(key) } });
+}
+function searchRows() {
+  pagination.value.current = 1;
+  void loadRows();
+}
+function resetSearch() {
+  search.value = {};
+  searchRows();
+}
+function changePage(page: number) {
+  pagination.value.current = page;
+  void loadRows();
+}
+function changeSize(size: number) {
+  pagination.value.size = size;
+  searchRows();
+}
+function openForm(row?: DictNode, detail = false) {
+  editing.value = row;
+  readOnly.value = detail || !!row?.readonly;
+  form.value = {
+    parent_id: row ? row.parent_id : (parent.value?.id ?? null),
+    parent_path: breadcrumb.value.map((node) => node.id),
+    dict_name: row?.dict_name ?? "",
+    dict_code: row?.dict_code ?? "",
+    dict_sort: row?.dict_sort ?? 0,
+    status: row?.status ?? 0,
+    is_default: row?.is_default ?? false,
+    css_class: row?.css_class ?? "",
+    list_class: row?.list_class ?? "",
+    description: row?.description ?? "",
+  };
+  dialog.value = true;
+}
+async function save() {
+  if (readOnly.value || saving.value || !(await formRef.value?.validate())) return;
+  saving.value = true;
+  try {
+    const { parent_path, ...values } = form.value;
+    if (values.parent_id !== null && Array.isArray(parent_path) && parent_path.length) {
+      values.parent_id = Number(parent_path.at(-1));
+    }
+    await DictAPI.saveNode(values as DictNodeWrite, editing.value?.id);
+    dictStore.clearDictData();
+    dialog.value = false;
+    ElMessage.success(t("dictionary.saved"));
+    await loadRows();
+  } finally {
+    saving.value = false;
   }
-  if (newData && newData.length === 0) {
-    currentDictTypeId.value = 0;
-    currentDictType.value = "";
-    currentDictLabel.value = "";
-    selectedDictRowId.value = null;
+}
+async function remove(row: DictNode) {
+  await ElMessageBox.confirm(
+    t("dictionary.confirmDelete", { name: row.dict_name }),
+    t("dictionary.delete"),
+    { type: "warning" }
+  );
+  await DictAPI.deleteNodes([row.id]);
+  dictStore.clearDictData();
+  await loadRows();
+}
+async function refreshCache() {
+  await DictAPI.refreshCache();
+  dictStore.clearDictData();
+  ElMessage.success(t("dictionary.saved"));
+}
+async function exportFile(tree: boolean) {
+  const response = await DictAPI.exportNodes(currentQuery(), tree);
+  const url = URL.createObjectURL(response.data);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = tree ? "dictionary-tree.xlsx" : "dictionary.xlsx";
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function tagType(value: string) {
+  return ["primary", "success", "info", "warning", "danger"].includes(value)
+    ? (value as "primary" | "success" | "info" | "warning" | "danger")
+    : "info";
+}
+const treeDialog = ref(false);
+const previewRoot = ref<DictNode>();
+const selectedPath = ref<DictNodeId[]>([]);
+function preview(row: DictNode) {
+  previewRoot.value = row;
+  selectedPath.value = [];
+  treeDialog.value = true;
+}
+const loadTree: LoadFunction = async (node, resolve) => {
+  if (node.level === 0) {
+    resolve(previewRoot.value ? [previewRoot.value] : []);
+    return;
   }
-});
+  try {
+    resolve(
+      (await DictAPI.children(node.data.id)).data.data.map((row) => ({
+        ...row,
+        leaf: !row.has_children,
+      }))
+    );
+  } catch {
+    resolve([]);
+  }
+};
+function asOption(row: DictNode) {
+  return { value: row.id, label: row.dict_name, leaf: !row.has_children };
+}
+const cascaderProps: CascaderProps = {
+  lazy: true,
+  checkStrictly: true,
+  async lazyLoad(node, resolve) {
+    if (node.level === 0) {
+      resolve(previewRoot.value ? [asOption(previewRoot.value)] : []);
+      return;
+    }
+    try {
+      resolve((await DictAPI.children(node.value as DictNodeId)).data.data.map(asOption));
+    } catch {
+      resolve([]);
+    }
+  },
+};
+const parentCascaderProps: CascaderProps = {
+  lazy: true,
+  checkStrictly: true,
+  async lazyLoad(node, resolve) {
+    if (node.level === 0) {
+      resolve(breadcrumb.value[0] ? [asOption(breadcrumb.value[0])] : []);
+      return;
+    }
+    try {
+      resolve(
+        (await DictAPI.children(node.value as DictNodeId)).data.data
+          .filter((row) => row.source === "database")
+          .map((row) => ({
+            value: row.id,
+            label: row.dict_name,
+            disabled: row.id === editing.value?.id,
+            leaf: !row.has_children,
+          }))
+      );
+    } catch {
+      resolve([]);
+    }
+  },
+};
+watch(
+  () => route.query.parent,
+  () => {
+    pagination.value.current = 1;
+    search.value = {};
+    void loadRows();
+  },
+  { immediate: true }
+);
 </script>

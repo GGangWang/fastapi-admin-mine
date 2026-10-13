@@ -1,0 +1,748 @@
+{
+  "SYS_ENABLE_STATUS": [
+    {
+      "code": 0,
+      "label": "启用",
+      "list_class": "success",
+      "sort": 0
+    },
+    {
+      "code": 1,
+      "label": "停用",
+      "list_class": "danger",
+      "sort": 1
+    }
+  ],
+  "GEN_CODE_STATUS": [
+    {
+      "code": 0,
+      "label": "未生成",
+      "sort": 0
+    },
+    {
+      "code": 1,
+      "label": "已生成",
+      "sort": 1
+    }
+  ],
+  "SYS_LOGIN_STATUS": [
+    {
+      "code": 1,
+      "label": "成功",
+      "sort": 0
+    },
+    {
+      "code": 2,
+      "label": "失败",
+      "sort": 1
+    }
+  ],
+  "SYS_MENU_CLIENT": [
+    {
+      "code": "pc",
+      "label": "Web 菜单",
+      "sort": 0
+    },
+    {
+      "code": "app",
+      "label": "APP 菜单",
+      "sort": 1
+    }
+  ],
+  "SYS_MENU_STATUS": [
+    {
+      "code": 0,
+      "label": "启用",
+      "sort": 0
+    },
+    {
+      "code": 1,
+      "label": "禁用",
+      "sort": 1
+    }
+  ],
+  "SYS_ON_OFF": [
+    {
+      "code": true,
+      "label": "开启",
+      "sort": 0
+    },
+    {
+      "code": false,
+      "label": "关闭",
+      "sort": 1
+    }
+  ],
+  "SYS_TICKET_STATUS": [
+    {
+      "code": 0,
+      "label": "待处理",
+      "list_class": "warning",
+      "sort": 0
+    },
+    {
+      "code": 1,
+      "label": "处理中",
+      "list_class": "info",
+      "sort": 1
+    },
+    {
+      "code": 2,
+      "label": "已完成",
+      "list_class": "success",
+      "sort": 2
+    },
+    {
+      "code": 3,
+      "label": "已关闭",
+      "list_class": "info",
+      "sort": 3
+    }
+  ],
+  "SYS_TICKET_TYPE": [
+    {
+      "code": "suggestion",
+      "label": "💡 建议",
+      "list_class": "success",
+      "sort": 0
+    },
+    {
+      "code": "bug",
+      "label": "🐛 缺陷",
+      "list_class": "danger",
+      "sort": 1
+    },
+    {
+      "code": "optimize",
+      "label": "⚡ 优化",
+      "list_class": "warning",
+      "sort": 2
+    },
+    {
+      "code": "other",
+      "label": "📋 其他",
+      "list_class": "info",
+      "sort": 3
+    }
+  ],
+  "SYS_VERSION_STATUS": [
+    {
+      "code": 0,
+      "label": "草稿",
+      "list_class": "info",
+      "sort": 0
+    },
+    {
+      "code": 1,
+      "label": "已发布",
+      "list_class": "success",
+      "sort": 1
+    },
+    {
+      "code": 2,
+      "label": "已回滚",
+      "list_class": "danger",
+      "sort": 2
+    }
+  ],
+  "TASK_JOB_STATUS": [
+    {
+      "code": 0,
+      "label": "运行中",
+      "list_class": "success",
+      "sort": 0
+    },
+    {
+      "code": 1,
+      "label": "暂停中",
+      "list_class": "warning",
+      "sort": 1
+    },
+    {
+      "code": 2,
+      "label": "已停止",
+      "list_class": "danger",
+      "sort": 2
+    }
+  ],
+  "TASK_EXECUTION_STATUS": [
+    {
+      "code": "pending",
+      "label": "待执行",
+      "list_class": "info",
+      "sort": 0
+    },
+    {
+      "code": "running",
+      "label": "执行中",
+      "list_class": "primary",
+      "sort": 1
+    },
+    {
+      "code": "success",
+      "label": "成功",
+      "list_class": "success",
+      "sort": 2
+    },
+    {
+      "code": "failed",
+      "label": "失败",
+      "list_class": "danger",
+      "sort": 3
+    },
+    {
+      "code": "timeout",
+      "label": "超时",
+      "list_class": "warning",
+      "sort": 4
+    },
+    {
+      "code": "cancelled",
+      "label": "已取消",
+      "list_class": "info",
+      "sort": 5
+    }
+  ],
+  "TASK_TRIGGER_TYPE": [
+    {
+      "code": "cron",
+      "label": "Cron表达式",
+      "list_class": "info",
+      "sort": 0
+    },
+    {
+      "code": "interval",
+      "label": "时间间隔",
+      "list_class": "info",
+      "sort": 1
+    },
+    {
+      "code": "date",
+      "label": "固定日期",
+      "list_class": "info",
+      "sort": 2
+    },
+    {
+      "code": "manual",
+      "label": "一次性任务",
+      "list_class": "info",
+      "sort": 3
+    }
+  ],
+  "TASK_JOB_STORE": [
+    {
+      "code": "default",
+      "label": "默认(Redis)",
+      "sort": 0
+    },
+    {
+      "code": "sqlalchemy",
+      "label": "数据库(Sqlalchemy)",
+      "sort": 1
+    },
+    {
+      "code": "memory",
+      "label": "内存(Memory)",
+      "sort": 2
+    }
+  ],
+  "TASK_EXECUTOR": [
+    {
+      "code": "default",
+      "label": "异步协程(事件循环)",
+      "sort": 0
+    },
+    {
+      "code": "threadpool",
+      "label": "线程池",
+      "sort": 1
+    },
+    {
+      "code": "processpool",
+      "label": "进程池",
+      "sort": 2
+    }
+  ],
+  "TASK_NODE_TRIGGER_TYPE": [
+    {
+      "code": "cron",
+      "label": "Cron表达式",
+      "sort": 0
+    },
+    {
+      "code": "interval",
+      "label": "时间间隔",
+      "sort": 1
+    },
+    {
+      "code": "date",
+      "label": "固定时间",
+      "sort": 2
+    }
+  ],
+  "STORAGE_LINK_EXPIRY": [
+    {
+      "code": 3600,
+      "label": "1小时",
+      "sort": 0
+    },
+    {
+      "code": 86400,
+      "label": "1天",
+      "sort": 1
+    },
+    {
+      "code": 259200,
+      "label": "3天",
+      "sort": 2
+    },
+    {
+      "code": 604800,
+      "label": "7天",
+      "sort": 3
+    }
+  ],
+  "STORAGE_PROTOCOL": [
+    {
+      "code": "ftp",
+      "label": "FTP",
+      "list_class": "primary",
+      "sort": 0
+    },
+    {
+      "code": "ftps",
+      "label": "FTPS",
+      "list_class": "success",
+      "sort": 1
+    },
+    {
+      "code": "sftp",
+      "label": "SFTP",
+      "list_class": "warning",
+      "sort": 2
+    },
+    {
+      "code": "s3",
+      "label": "S3",
+      "list_class": "info",
+      "sort": 3
+    },
+    {
+      "code": "obs",
+      "label": "OBS(华为云)",
+      "list_class": "success",
+      "sort": 4
+    },
+    {
+      "code": "oss",
+      "label": "OSS(阿里云)",
+      "list_class": "danger",
+      "sort": 5
+    },
+    {
+      "code": "cos",
+      "label": "COS(腾讯云)",
+      "list_class": "warning",
+      "sort": 6
+    },
+    {
+      "code": "local",
+      "label": "本地目录",
+      "list_class": "info",
+      "sort": 7
+    }
+  ],
+  "STORAGE_ENCRYPTION": [
+    {
+      "code": 0,
+      "label": "只要求明文",
+      "sort": 0
+    },
+    {
+      "code": 1,
+      "label": "显式TLS(可用时)",
+      "sort": 1
+    },
+    {
+      "code": 2,
+      "label": "要求显式TLS",
+      "sort": 2
+    },
+    {
+      "code": 3,
+      "label": "要求隐式TLS",
+      "sort": 3
+    }
+  ],
+  "STORAGE_CONNECTION_MODE": [
+    {
+      "code": 0,
+      "label": "默认",
+      "sort": 0
+    },
+    {
+      "code": 1,
+      "label": "主动 (PORT)",
+      "sort": 1
+    },
+    {
+      "code": 2,
+      "label": "被动 (PASV)",
+      "sort": 2
+    }
+  ],
+  "STORAGE_ENCODING": [
+    {
+      "code": "UTF-8",
+      "label": "UTF-8",
+      "sort": 0
+    },
+    {
+      "code": "GBK",
+      "label": "GBK",
+      "sort": 1
+    }
+  ],
+  "STORAGE_TRANSFER_MODE": [
+    {
+      "code": "parallel",
+      "label": "多目标（同时传输到多个存储源）",
+      "sort": 0
+    },
+    {
+      "code": "chain",
+      "label": "链式（按目标顺序逐跳传输）",
+      "sort": 1
+    }
+  ],
+  "STORAGE_SOURCE_MODE": [
+    {
+      "code": "remote",
+      "label": "远端存储源",
+      "sort": 0
+    },
+    {
+      "code": "local",
+      "label": "本地文件",
+      "sort": 1
+    }
+  ],
+  "STORAGE_WORKFLOW_MODE": [
+    {
+      "code": "parallel",
+      "label": "多目标（并行）",
+      "sort": 0
+    },
+    {
+      "code": "chain",
+      "label": "链式（逐跳）",
+      "sort": 1
+    }
+  ],
+  "STORAGE_TRANSPORT_MODE": [
+    {
+      "code": "stream",
+      "label": "流式传输",
+      "sort": 0
+    },
+    {
+      "code": "multipart",
+      "label": "分片传输",
+      "sort": 1
+    }
+  ],
+  "SYS_OPERATION_STATUS": [
+    {
+      "code": "1",
+      "label": "成功",
+      "list_class": "success",
+      "sort": 0
+    },
+    {
+      "code": "0",
+      "label": "失败",
+      "list_class": "danger",
+      "sort": 1
+    }
+  ],
+  "SYS_MENU_TYPE": [
+    {
+      "code": "1",
+      "label": "目录",
+      "list_class": "warning",
+      "sort": 0
+    },
+    {
+      "code": "2",
+      "label": "菜单",
+      "list_class": "success",
+      "sort": 1
+    },
+    {
+      "code": "3",
+      "label": "按钮",
+      "list_class": "danger",
+      "sort": 2
+    },
+    {
+      "code": "4",
+      "label": "外链",
+      "list_class": "info",
+      "sort": 3
+    }
+  ],
+  "SYS_MENU_SCOPE": [
+    {
+      "code": "web",
+      "label": "Web",
+      "list_class": "primary",
+      "sort": 0
+    },
+    {
+      "code": "app",
+      "label": "App",
+      "list_class": "success",
+      "sort": 1
+    }
+  ],
+  "SYS_DATA_SCOPE": [
+    {
+      "code": "1",
+      "label": "仅本人数据权限",
+      "list_class": "primary",
+      "sort": 0
+    },
+    {
+      "code": "2",
+      "label": "本部门及以下数据权限",
+      "list_class": "warning",
+      "sort": 1
+    },
+    {
+      "code": "3",
+      "label": "全部数据权限",
+      "list_class": "success",
+      "sort": 2
+    }
+  ],
+  "STORAGE_TRANSFER_DISPLAY_MODE": [
+    {
+      "code": "chain",
+      "label": "链式",
+      "list_class": "warning",
+      "sort": 0
+    },
+    {
+      "code": "parallel",
+      "label": "多目标",
+      "list_class": "primary",
+      "sort": 1
+    }
+  ],
+  "STORAGE_TRANSFER_STATUS": [
+    {
+      "code": "pending",
+      "label": "等待中",
+      "list_class": "info",
+      "sort": 0
+    },
+    {
+      "code": "running",
+      "label": "传输中",
+      "list_class": "warning",
+      "sort": 1
+    },
+    {
+      "code": "success",
+      "label": "成功",
+      "list_class": "success",
+      "sort": 2
+    },
+    {
+      "code": "failed",
+      "label": "失败",
+      "list_class": "danger",
+      "sort": 3
+    },
+    {
+      "code": "canceled",
+      "label": "已取消",
+      "list_class": "info",
+      "sort": 4
+    }
+  ],
+  "TASK_NODE_TRIGGER_DISPLAY": [
+    {
+      "code": "cron",
+      "label": "Cron",
+      "sort": 0
+    },
+    {
+      "code": "interval",
+      "label": "间隔",
+      "sort": 1
+    },
+    {
+      "code": "date",
+      "label": "单次",
+      "sort": 2
+    }
+  ],
+  "STORAGE_PROTOCOL_SHORT": [
+    {
+      "code": "local",
+      "label": "本地",
+      "sort": 0
+    },
+    {
+      "code": "ftp",
+      "label": "FTP",
+      "sort": 1
+    },
+    {
+      "code": "ftps",
+      "label": "FTPS",
+      "sort": 2
+    },
+    {
+      "code": "sftp",
+      "label": "SFTP",
+      "sort": 3
+    },
+    {
+      "code": "s3",
+      "label": "S3",
+      "sort": 4
+    },
+    {
+      "code": "oss",
+      "label": "OSS",
+      "sort": 5
+    },
+    {
+      "code": "obs",
+      "label": "OBS",
+      "sort": 6
+    },
+    {
+      "code": "cos",
+      "label": "COS",
+      "sort": 7
+    }
+  ],
+  "SYS_DEFAULT_FLAG": [
+    {
+      "code": true,
+      "label": "默认",
+      "sort": 0
+    },
+    {
+      "code": false,
+      "label": "否",
+      "sort": 1
+    }
+  ],
+  "STORAGE_REGION_S3": [
+    {
+      "code": "us-east-1",
+      "label": "us-east-1",
+      "sort": 0
+    },
+    {
+      "code": "us-west-2",
+      "label": "us-west-2",
+      "sort": 1
+    },
+    {
+      "code": "ap-northeast-1",
+      "label": "ap-northeast-1",
+      "sort": 2
+    },
+    {
+      "code": "ap-southeast-1",
+      "label": "ap-southeast-1",
+      "sort": 3
+    },
+    {
+      "code": "ap-south-1",
+      "label": "ap-south-1",
+      "sort": 4
+    }
+  ],
+  "STORAGE_REGION_OSS": [
+    {
+      "code": "cn-hangzhou",
+      "label": "cn-hangzhou",
+      "sort": 0
+    },
+    {
+      "code": "cn-beijing",
+      "label": "cn-beijing",
+      "sort": 1
+    },
+    {
+      "code": "cn-shanghai",
+      "label": "cn-shanghai",
+      "sort": 2
+    },
+    {
+      "code": "cn-shenzhen",
+      "label": "cn-shenzhen",
+      "sort": 3
+    },
+    {
+      "code": "cn-hongkong",
+      "label": "cn-hongkong",
+      "sort": 4
+    }
+  ],
+  "STORAGE_REGION_COS": [
+    {
+      "code": "ap-beijing",
+      "label": "ap-beijing",
+      "sort": 0
+    },
+    {
+      "code": "ap-shanghai",
+      "label": "ap-shanghai",
+      "sort": 1
+    },
+    {
+      "code": "ap-guangzhou",
+      "label": "ap-guangzhou",
+      "sort": 2
+    },
+    {
+      "code": "ap-chengdu",
+      "label": "ap-chengdu",
+      "sort": 3
+    },
+    {
+      "code": "ap-singapore",
+      "label": "ap-singapore",
+      "sort": 4
+    }
+  ],
+  "STORAGE_REGION_OBS": [
+    {
+      "code": "cn-north-1",
+      "label": "cn-north-1",
+      "sort": 0
+    },
+    {
+      "code": "cn-north-4",
+      "label": "cn-north-4",
+      "sort": 1
+    },
+    {
+      "code": "cn-east-2",
+      "label": "cn-east-2",
+      "sort": 2
+    },
+    {
+      "code": "cn-south-1",
+      "label": "cn-south-1",
+      "sort": 3
+    }
+  ]
+}

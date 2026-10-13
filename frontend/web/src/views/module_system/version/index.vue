@@ -97,10 +97,12 @@
         >
           <template #status>
             <ElSelect v-model="formData.status" placeholder="请选择状态">
-              <ElOption :value="0" label="草稿" />
-              <ElOption :value="1" label="已发布" />
-              <ElOption :value="2" label="已回滚" />
-            </ElSelect>
+              <ElOption
+                v-for="option in pageDict.options(DictTypeEnum.SYS_VERSION_STATUS, 'number')"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+            /></ElSelect>
           </template>
           <template #content>
             <FaWangEditor
@@ -137,6 +139,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_VERSION_STATUS]);
+
 import { renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@utils";
 import VersionAPI, { type VersionForm, type VersionTable } from "@/api/module_system/version";
 import { Plus } from "@element-plus/icons-vue";
@@ -156,24 +162,14 @@ defineOptions({
 });
 
 // ─── 常量 ───
-const STATUS_OPTIONS = [
-  { label: "草稿", value: 0 },
-  { label: "已发布", value: 1 },
-  { label: "已回滚", value: 2 },
-] as const;
-
-const STATUS_MAP: Record<string, string> = {
-  "0": "草稿",
-  "1": "已发布",
-  "2": "已回滚",
-};
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_VERSION_STATUS, "number");
 
 function statusLabel(s: string) {
-  return STATUS_MAP[s] || s;
+  return pageDict.label(DictTypeEnum.SYS_VERSION_STATUS, s);
 }
 
-function statusTagType(s: string): "info" | "success" | "danger" | undefined {
-  return { "0": "info" as const, "1": "success" as const, "2": "danger" as const }[s];
+function statusTagType(s: string) {
+  return pageDict.tagMap(DictTypeEnum.SYS_VERSION_STATUS)[s]?.type ?? "info";
 }
 
 const createInitialFormData = (): VersionForm => ({
@@ -239,11 +235,7 @@ const {
         prop: "status",
         label: "状态",
         width: 100,
-        status: {
-          0: { type: "info", text: "草稿" },
-          1: { type: "success", text: "已发布" },
-          2: { type: "danger", text: "已回滚" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_VERSION_STATUS),
       },
       { prop: "date", label: "发布日期", width: 120, showOverflowTooltip: true },
       { prop: "sort", label: "排序", width: 80 },

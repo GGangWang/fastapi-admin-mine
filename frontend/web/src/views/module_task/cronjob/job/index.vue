@@ -337,8 +337,12 @@
         </ElFormItem>
         <ElFormItem label="合并运行">
           <ElRadioGroup v-model="modifyForm.coalesce">
-            <ElRadio :value="true">是</ElRadio>
-            <ElRadio :value="false">否</ElRadio>
+            <ElRadio
+              v-for="option in pageDict.options(DictTypeEnum.SYS_TRUE_FALSE, 'boolean')"
+              :key="String(option.value)"
+              :value="option.value"
+              >{{ option.label }}</ElRadio
+            >
           </ElRadioGroup>
         </ElFormItem>
         <ElFormItem label="最大实例数">
@@ -372,6 +376,15 @@
 </template>
 
 <script lang="ts" setup>
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([
+  DictTypeEnum.SYS_TRUE_FALSE,
+  DictTypeEnum.TASK_TRIGGER_TYPE,
+  DictTypeEnum.TASK_EXECUTION_STATUS,
+  DictTypeEnum.TASK_JOB_STATUS,
+]);
+
 defineOptions({
   name: "Job",
   inheritAttrs: false,
@@ -439,11 +452,7 @@ const jobSearchItems = computed<SearchFormItem[]>(() => [
     props: {
       placeholder: "请选择状态",
       clearable: true,
-      options: [
-        { label: "运行中", value: 0 },
-        { label: "暂停中", value: 1 },
-        { label: "已停止", value: 2 },
-      ],
+      options: pageDict.options(DictTypeEnum.TASK_JOB_STATUS, "number"),
     },
     span: 6,
   },
@@ -553,14 +562,7 @@ const logSearchItems = computed<SearchFormItem[]>(() => [
     props: {
       placeholder: "请选择状态",
       clearable: true,
-      options: [
-        { label: "待执行", value: "pending" },
-        { label: "执行中", value: "running" },
-        { label: "成功", value: "success" },
-        { label: "失败", value: "failed" },
-        { label: "超时", value: "timeout" },
-        { label: "已取消", value: "cancelled" },
-      ],
+      options: pageDict.options(DictTypeEnum.TASK_EXECUTION_STATUS, "string"),
     },
     span: 8,
   },
@@ -571,12 +573,7 @@ const logSearchItems = computed<SearchFormItem[]>(() => [
     props: {
       placeholder: "请选择",
       clearable: true,
-      options: [
-        { label: "Cron表达式", value: "cron" },
-        { label: "时间间隔", value: "interval" },
-        { label: "固定日期", value: "date" },
-        { label: "一次性任务", value: "manual" },
-      ],
+      options: pageDict.options(DictTypeEnum.TASK_TRIGGER_TYPE, "string"),
     },
     span: 8,
   },
@@ -661,25 +658,13 @@ const {
         prop: "trigger_type",
         label: "触发方式",
         minWidth: 120,
-        status: {
-          cron: { type: "info", text: "Cron表达式" },
-          interval: { type: "info", text: "时间间隔" },
-          date: { type: "info", text: "固定日期" },
-          manual: { type: "info", text: "一次性任务" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.TASK_TRIGGER_TYPE),
       },
       {
         prop: "status",
         label: "状态",
         minWidth: 80,
-        status: {
-          pending: { type: "info", text: "待执行" },
-          running: { type: "primary", text: "执行中" },
-          success: { type: "success", text: "成功" },
-          failed: { type: "danger", text: "失败" },
-          timeout: { type: "warning", text: "超时" },
-          cancelled: { type: "info", text: "已取消" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.TASK_EXECUTION_STATUS),
       },
       {
         prop: "next_run_time",
@@ -912,18 +897,7 @@ function getJobStatusType(status: number) {
 }
 
 function getJobStatusLabel(status: number) {
-  switch (status) {
-    case 0:
-      return "运行中";
-    case 1:
-      return "暂停中";
-    case 2:
-      return "已停止";
-    case 3:
-      return "未知";
-    default:
-      return status;
-  }
+  return pageDict.label(DictTypeEnum.TASK_JOB_STATUS, status);
 }
 
 function formatTrigger(trigger: string) {

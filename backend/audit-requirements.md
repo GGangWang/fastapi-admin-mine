@@ -1,6 +1,6 @@
 # 需求覆盖审计报告：REQUIREMENTS.md vs 实现代码
 
-- 审计对象：`/Users/tao/workspace/FastapiAdmin`（FastAPI 后端 + Vue3 Web 端 + uniapp 移动端）
+- 审计对象：`/Users/tao/workspace/ResNexus`（FastAPI 后端 + Vue3 Web 端 + uniapp 移动端）
 - 基线文档：`REQUIREMENTS.md`（3135 行，标题「SaaS 多租户平台需求文档 v3.6.0」，最后更新 2026-06-03）
 - 审计日期：本轮只读摸底，未改动任何仓库文件（仅新增本报告）
 - 审计方式：模块/路由/表结构/权限点的**代码基线盘点 + 文档映射**，非逐行通读
@@ -9,7 +9,7 @@
 
 ## 0. 一句话结论
 
-**`REQUIREMENTS.md` 描述的是一个 SaaS 多租户平台，仓库里实际存在的是一套单租户 RBAC 后台框架（FastapiAdmin 上游形态）。多租户能力（tenant_id 行级隔离、平台/租户/用户三层权限、Tenant/Package/Plugin/Order/Email/Invoice/AuditLog/Dashboard）在三个端的代码里"零实现"，不是"部分实现"。**
+**`REQUIREMENTS.md` 描述的是一个 SaaS 多租户平台，仓库里实际存在的是一套单租户 RBAC 后台框架（ResNexus 上游形态）。多租户能力（tenant_id 行级隔离、平台/租户/用户三层权限、Tenant/Package/Plugin/Order/Email/Invoice/AuditLog/Dashboard）在三个端的代码里"零实现"，不是"部分实现"。**
 
 可验证的硬事实：
 
@@ -581,7 +581,7 @@ Git 证据
 ## 附：机械化核对命令（可复现）
 
 ```bash
-cd /Users/tao/workspace/FastapiAdmin
+cd /Users/tao/workspace/ResNexus
 
 # 1. 多租户实现是否存在
 grep -ril "tenant" backend/app frontend/web/src frontend/app/src | wc -l        # → 0

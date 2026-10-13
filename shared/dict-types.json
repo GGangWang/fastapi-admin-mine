@@ -1,0 +1,260 @@
+[
+  {
+    "name": "SYS_BUSINESS_STATUS",
+    "dict_type": "sys_business_status",
+    "purpose": "系统业务状态",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_TRUE_FALSE",
+    "dict_type": "sys_true_false",
+    "purpose": "是否",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_BUSINESS_TYPE",
+    "dict_type": "sys_business_type",
+    "purpose": "业务操作类型",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_USER_SEX",
+    "dict_type": "sys_user_sex",
+    "purpose": "性别",
+    "source": "database"
+  },
+  {
+    "name": "SYS_NOTICE_TYPE",
+    "dict_type": "sys_notice_type",
+    "purpose": "公告类型",
+    "source": "database"
+  },
+  {
+    "name": "SYS_DICT_SOURCE",
+    "dict_type": "sys_dict_source",
+    "purpose": "字典来源",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_ENABLE_STATUS",
+    "dict_type": "sys_enable_status",
+    "purpose": "启停状态",
+    "source": "enum"
+  },
+  {
+    "name": "GEN_CODE_STATUS",
+    "dict_type": "gen_code_status",
+    "purpose": "代码生成状态",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_LOGIN_STATUS",
+    "dict_type": "sys_login_status",
+    "purpose": "登录状态",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_MENU_CLIENT",
+    "dict_type": "sys_menu_client",
+    "purpose": "菜单终端",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_MENU_STATUS",
+    "dict_type": "sys_menu_status",
+    "purpose": "菜单状态",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_ON_OFF",
+    "dict_type": "sys_on_off",
+    "purpose": "开关",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_TICKET_STATUS",
+    "dict_type": "sys_ticket_status",
+    "purpose": "工单状态",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_TICKET_TYPE",
+    "dict_type": "sys_ticket_type",
+    "purpose": "工单类型",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_VERSION_STATUS",
+    "dict_type": "sys_version_status",
+    "purpose": "版本状态",
+    "source": "enum"
+  },
+  {
+    "name": "TASK_JOB_STATUS",
+    "dict_type": "task_job_status",
+    "purpose": "任务状态",
+    "source": "enum"
+  },
+  {
+    "name": "TASK_EXECUTION_STATUS",
+    "dict_type": "task_execution_status",
+    "purpose": "任务执行状态",
+    "source": "enum"
+  },
+  {
+    "name": "TASK_TRIGGER_TYPE",
+    "dict_type": "task_trigger_type",
+    "purpose": "任务触发方式",
+    "source": "enum"
+  },
+  {
+    "name": "TASK_JOB_STORE",
+    "dict_type": "task_job_store",
+    "purpose": "任务存储方式",
+    "source": "enum"
+  },
+  {
+    "name": "TASK_EXECUTOR",
+    "dict_type": "task_executor",
+    "purpose": "任务执行器",
+    "source": "enum"
+  },
+  {
+    "name": "TASK_NODE_TRIGGER_TYPE",
+    "dict_type": "task_node_trigger_type",
+    "purpose": "节点触发方式",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_LINK_EXPIRY",
+    "dict_type": "storage_link_expiry",
+    "purpose": "存储链接有效期",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_PROTOCOL",
+    "dict_type": "storage_protocol",
+    "purpose": "存储协议",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_ENCRYPTION",
+    "dict_type": "storage_encryption",
+    "purpose": "存储加密方式",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_CONNECTION_MODE",
+    "dict_type": "storage_connection_mode",
+    "purpose": "存储连接模式",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_ENCODING",
+    "dict_type": "storage_encoding",
+    "purpose": "存储编码",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_TRANSFER_MODE",
+    "dict_type": "storage_transfer_mode",
+    "purpose": "传输模式",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_SOURCE_MODE",
+    "dict_type": "storage_source_mode",
+    "purpose": "传输来源",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_WORKFLOW_MODE",
+    "dict_type": "storage_workflow_mode",
+    "purpose": "工作流模式",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_TRANSPORT_MODE",
+    "dict_type": "storage_transport_mode",
+    "purpose": "传输方式",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_OPERATION_STATUS",
+    "dict_type": "sys_operation_status",
+    "purpose": "操作结果",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_MENU_TYPE",
+    "dict_type": "sys_menu_type",
+    "purpose": "菜单类型",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_MENU_SCOPE",
+    "dict_type": "sys_menu_scope",
+    "purpose": "菜单终端展示",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_DATA_SCOPE",
+    "dict_type": "sys_data_scope",
+    "purpose": "数据权限",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_TRANSFER_DISPLAY_MODE",
+    "dict_type": "storage_transfer_display_mode",
+    "purpose": "传输模式展示",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_TRANSFER_STATUS",
+    "dict_type": "storage_transfer_status",
+    "purpose": "传输状态",
+    "source": "enum"
+  },
+  {
+    "name": "TASK_NODE_TRIGGER_DISPLAY",
+    "dict_type": "task_node_trigger_display",
+    "purpose": "节点触发摘要",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_PROTOCOL_SHORT",
+    "dict_type": "storage_protocol_short",
+    "purpose": "存储协议简称",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_DEFAULT_FLAG",
+    "dict_type": "sys_default_flag",
+    "purpose": "默认标识",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_REGION_S3",
+    "dict_type": "storage_region_s3",
+    "purpose": "S3区域",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_REGION_OSS",
+    "dict_type": "storage_region_oss",
+    "purpose": "OSS区域",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_REGION_COS",
+    "dict_type": "storage_region_cos",
+    "purpose": "COS区域",
+    "source": "enum"
+  },
+  {
+    "name": "STORAGE_REGION_OBS",
+    "dict_type": "storage_region_obs",
+    "purpose": "OBS区域",
+    "source": "enum"
+  }
+]

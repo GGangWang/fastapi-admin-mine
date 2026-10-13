@@ -101,6 +101,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS]);
+
 import DeptAPI, {
   type DeptForm,
   type DeptPageQuery,
@@ -208,10 +212,7 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
 const deptSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -293,7 +294,7 @@ const deptDetailItems: import("@/components/display/fa-descriptions/index.vue").
       label: "状态",
       prop: "status",
       tag: {
-        map: { "0": { type: "success", text: "启用" }, "1": { type: "danger", text: "停用" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
     },
     { label: "排序", prop: "order" },
@@ -405,10 +406,7 @@ const { columnChecks, columns } = useTableColumns<DeptTable>(
       prop: "status",
       label: "状态",
       width: 88,
-      status: {
-        0: { type: "success", text: "启用" },
-        1: { type: "danger", text: "停用" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
     },
     { prop: "order", label: "排序", width: 88, showOverflowTooltip: true },
     { prop: "description", label: "描述", minWidth: 100, showOverflowTooltip: true },
@@ -481,10 +479,7 @@ const deptDialogFormItems = computed<FormItem[]>(() => [
     key: "status",
     type: "radiogroup",
     props: {
-      options: [
-        { label: "启用", value: 0 },
-        { label: "停用", value: 1 },
-      ],
+      options: pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"),
     },
   },
   {

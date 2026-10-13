@@ -71,8 +71,7 @@
             <span>{{ protocolLabel((row as unknown as SourceTable)?.protocol) }}</span>
           </template>
           <template #is_default="{ row }">
-            <FaStatusTag v-if="row?.is_default" type="success" label="默认" />
-            <FaStatusTag v-else type="info" label="否" />
+            <FaDictTag :type="DictTypeEnum.SYS_DEFAULT_FLAG" :value="row?.is_default" />
           </template>
           <template #is_secure="{ row }">
             <span>{{ row?.is_secure ? "是" : "否" }}</span>
@@ -186,6 +185,21 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([
+  DictTypeEnum.STORAGE_REGION_S3,
+  DictTypeEnum.STORAGE_REGION_OSS,
+  DictTypeEnum.STORAGE_REGION_COS,
+  DictTypeEnum.STORAGE_REGION_OBS,
+  DictTypeEnum.SYS_DEFAULT_FLAG,
+  DictTypeEnum.SYS_ENABLE_STATUS,
+  DictTypeEnum.STORAGE_PROTOCOL,
+  DictTypeEnum.STORAGE_ENCRYPTION,
+  DictTypeEnum.STORAGE_CONNECTION_MODE,
+  DictTypeEnum.STORAGE_ENCODING,
+]);
+
 import { useRouter } from "vue-router";
 import { ElTag } from "element-plus";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
@@ -210,69 +224,50 @@ defineOptions({
 const router = useRouter();
 
 // 协议选项：默认内置，挂载后经 /node/protocols 刷新（保留友好中文标签）
-const PROTOCOL_LABELS: Record<string, string> = {
-  ftp: "FTP",
-  ftps: "FTPS",
-  sftp: "SFTP",
-  s3: "S3",
-  obs: "OBS(华为云)",
-  oss: "OSS(阿里云)",
-  cos: "COS(腾讯云)",
-  local: "本地目录",
-};
-const PROTOCOL_OPTIONS = ref([
-  { label: "FTP", value: "ftp" },
-  { label: "FTPS", value: "ftps" },
-  { label: "SFTP", value: "sftp" },
-  { label: "S3", value: "s3" },
-  { label: "OBS(华为云)", value: "obs" },
-  { label: "OSS(阿里云)", value: "oss" },
-  { label: "COS(腾讯云)", value: "cos" },
-  { label: "本地目录", value: "local" },
-]);
+
+const PROTOCOL_OPTIONS = ref(pageDict.options(DictTypeEnum.STORAGE_PROTOCOL, "string"));
 async function loadProtocols() {
   const { data } = await NodeAPI.getProtocols();
   const items = data.data ?? [];
   PROTOCOL_OPTIONS.value = items.map((p) => ({
-    label: PROTOCOL_LABELS[p.protocol] ?? p.name ?? p.protocol,
+    label: pageDict.label(DictTypeEnum.STORAGE_PROTOCOL, p.protocol) || p.name || p.protocol,
     value: p.protocol,
   }));
 }
 void loadProtocols();
 
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
-const ENCRYPT_OPTIONS = [
-  { label: "只要求明文", value: 0 },
-  { label: "显式TLS(可用时)", value: 1 },
-  { label: "要求显式TLS", value: 2 },
-  { label: "要求隐式TLS", value: 3 },
-] as const;
+const ENCRYPT_OPTIONS = pageDict.options(DictTypeEnum.STORAGE_ENCRYPTION, "number");
 
-const CONNECTION_MODE_OPTIONS = [
-  { label: "默认", value: 0 },
-  { label: "主动 (PORT)", value: 1 },
-  { label: "被动 (PASV)", value: 2 },
-] as const;
+const CONNECTION_MODE_OPTIONS = pageDict.options(DictTypeEnum.STORAGE_CONNECTION_MODE, "number");
 
 // 各对象存储协议的区域字典（切换协议时自动带出默认区域）
 const regionDict: Record<string, { options: string[]; default: string }> = {
   s3: {
-    options: ["us-east-1", "us-west-2", "ap-northeast-1", "ap-southeast-1", "ap-south-1"],
+    get options() {
+      return pageDict.options(DictTypeEnum.STORAGE_REGION_S3).map((item) => String(item.value));
+    },
     default: "us-east-1",
   },
   oss: {
-    options: ["cn-hangzhou", "cn-beijing", "cn-shanghai", "cn-shenzhen", "cn-hongkong"],
+    get options() {
+      return pageDict.options(DictTypeEnum.STORAGE_REGION_OSS).map((item) => String(item.value));
+    },
     default: "cn-beijing",
   },
   cos: {
-    options: ["ap-beijing", "ap-shanghai", "ap-guangzhou", "ap-chengdu", "ap-singapore"],
+    get options() {
+      return pageDict.options(DictTypeEnum.STORAGE_REGION_COS).map((item) => String(item.value));
+    },
     default: "ap-beijing",
   },
-  obs: { options: ["cn-north-1", "cn-north-4", "cn-east-2", "cn-south-1"], default: "cn-north-4" },
+  obs: {
+    get options() {
+      return pageDict.options(DictTypeEnum.STORAGE_REGION_OBS).map((item) => String(item.value));
+    },
+    default: "cn-north-4",
+  },
 };
 
 const isObjectStorageProtocol = (p?: string) => ["s3", "oss", "cos", "obs"].includes(p ?? "");
@@ -284,19 +279,8 @@ function protocolLabel(value?: string): string {
 }
 
 // 源项目风格：协议 → tag 颜色
-const protocolTagType = (protocol?: string) => {
-  const map: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
-    ftp: "primary",
-    ftps: "success",
-    sftp: "warning",
-    s3: "info",
-    oss: "danger",
-    cos: "warning",
-    obs: "success",
-    local: "info",
-  };
-  return map[protocol ?? ""] ?? "info";
-};
+const protocolTagType = (protocol?: string) =>
+  pageDict.tagMap(DictTypeEnum.STORAGE_PROTOCOL)[protocol ?? ""]?.type ?? "info";
 
 type SourceSearchForm = {
   name?: string;
@@ -499,7 +483,7 @@ const sourceDetailItems: import("@/components/display/fa-descriptions/index.vue"
     {
       label: "状态",
       prop: "status",
-      tag: { map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } } },
+      tag: { map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS) },
     },
     { label: "备注", prop: "description" },
     { label: "创建时间", prop: "created_time" },
@@ -691,7 +675,10 @@ const sourceDialogFormItems = computed<FormItem[]>(() => {
         props: {
           placeholder: "请选择或输入区域",
           // ElOption 只认 { label, value }：直接传字符串会展开成下标属性、value 缺省被布尔转为 false，导致选项显示 "false"
-          options: (regionDict[p]?.options ?? []).map((region) => ({ label: region, value: region })),
+          options: (regionDict[p]?.options ?? []).map((region) => ({
+            label: region,
+            value: region,
+          })),
           filterable: true,
           allowCreate: true,
         },
@@ -800,10 +787,7 @@ const sourceDialogFormItems = computed<FormItem[]>(() => {
           span: 12,
           props: {
             placeholder: "请选择编码",
-            options: [
-              { label: "UTF-8", value: "UTF-8" },
-              { label: "GBK", value: "GBK" },
-            ],
+            options: pageDict.options(DictTypeEnum.STORAGE_ENCODING, "string"),
             filterable: true,
             allowCreate: true,
           },
@@ -911,10 +895,7 @@ const {
         prop: "status",
         label: "状态",
         width: 80,
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
       { prop: "description", label: "备注", minWidth: 120, showOverflowTooltip: true },
       {

@@ -57,8 +57,8 @@
     <ElCarouselItem>
       <FaBasicBanner
         height="100%"
-        title="欢迎使用 FastapiAdmin"
-        subtitle="基于 Vue 3 + TypeScript + Element Plus 构建的现代化管理系统。"
+        title="欢迎使用ResNexus"
+        subtitle="集中管理资源信息、访问权限与运行状态。"
         titleColor="#333"
         subtitleColor="#666"
         boxStyle="!bg-[#D4F1F7]"

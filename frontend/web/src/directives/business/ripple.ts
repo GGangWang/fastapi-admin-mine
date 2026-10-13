@@ -34,7 +34,7 @@
  * - 自定义：通过 color 参数指定任意颜色
  *
  * @module directives/ripple
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 
 import type { App, Directive, DirectiveBinding } from "vue";

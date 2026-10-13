@@ -1,7 +1,7 @@
-# FastapiAdmin 测试与可验证性审计（t3 / 只读审计）
+# ResNexus 测试与可验证性审计（t3 / 只读审计）
 
-- 审计人：测试工程师（team `fastapiadmin-audit`，task `t3`）
-- 工作区：`/Users/tao/workspace/FastapiAdmin`
+- 审计人：测试工程师（team `resnexus-audit`，task `t3`）
+- 工作区：`/Users/tao/workspace/ResNexus`
 - 审计范围：`backend/tests`、`backend/pyproject.toml` 的 pytest 配置、`frontend/web` 的 vitest 与用例、`frontend/app`（uniapp）测试能力、仓库级 CI 配置
 - 本轮约束：只读，除本报告外未修改/删除任何仓库文件；未安装依赖、未启服务、未提交 git
 
@@ -58,7 +58,7 @@ $ cd backend && UV_CACHE_DIR=/tmp/uv-cache-test uv run pytest -v
 ============================= test session starts ==============================
 platform darwin -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0 -- .../backend/.venv/bin/python3
 cachedir: .pytest_cache
-rootdir: /Users/tao/workspace/FastapiAdmin/backend
+rootdir: /Users/tao/workspace/ResNexus/backend
 configfile: pyproject.toml
 plugins: anyio-4.12.1, asyncio-1.4.0
 asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, ...
@@ -82,7 +82,7 @@ EXIT=0
 ```text
 $ cd frontend/web && ./node_modules/.bin/vitest run
 
- RUN  v4.1.7 /Users/tao/workspace/FastapiAdmin/frontend/web
+ RUN  v4.1.7 /Users/tao/workspace/ResNexus/frontend/web
 
  ✓ src/__tests__/smoke.spec.ts (3 tests) 24ms
 stdout | src/__tests__/route-invariants.spec.ts > 静态路由 — 中间层不挂组件（深度跳级的前提） > ...

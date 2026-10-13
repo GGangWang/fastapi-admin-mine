@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import TicketStatus
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.modules.system.user.crud import UserCRUD
@@ -21,18 +22,12 @@ from .schema import (
 )
 
 _TICKET_STATUS_TRANSITIONS = {
-    0: {1, 3},
-    1: {2, 3},
-    2: {3},
-    3: {0},
+    TicketStatus.PENDING: {TicketStatus.PROCESSING, TicketStatus.CLOSED},
+    TicketStatus.PROCESSING: {TicketStatus.COMPLETED, TicketStatus.CLOSED},
+    TicketStatus.COMPLETED: {TicketStatus.CLOSED},
+    TicketStatus.CLOSED: {TicketStatus.PENDING},
 }
-
-_TICKET_STATUS_LABELS = {
-    0: "待处理",
-    1: "处理中",
-    2: "已完成",
-    3: "已关闭",
-}
+_TICKET_STATUS_LABELS = {TicketStatus.PENDING: "待处理", TicketStatus.PROCESSING: "处理中", TicketStatus.COMPLETED: "已完成", TicketStatus.CLOSED: "已关闭"}
 
 
 _TICKET_PRELOAD = ["assigned_by"]
@@ -46,7 +41,7 @@ class TicketService:
         self.db = db
 
     def _validate_status_transition(self, ticket, new_status: int) -> None:
-        old_status = ticket.status if ticket.status is not None else 0
+        old_status = ticket.status if ticket.status is not None else TicketStatus.PENDING
         old_label = _TICKET_STATUS_LABELS.get(old_status, str(old_status))
         new_label = _TICKET_STATUS_LABELS.get(new_status, str(new_status))
 
@@ -58,22 +53,22 @@ class TicketService:
         is_creator = user and user.id and ticket.created_id == user.id
         is_assignee = user and user.id and ticket.assigned_id == user.id
 
-        if new_status == 0:
+        if new_status == TicketStatus.PENDING:
             if not is_super:
                 raise CustomException(msg="仅超管可以重新打开已关闭的工单")
-        elif old_status == 0 and new_status == 1:
+        elif old_status == TicketStatus.PENDING and new_status == TicketStatus.PROCESSING:
             if not (is_super or is_creator or is_assignee):
                 raise CustomException(msg="仅创建人、处理人或超管可以受理工单")
-        elif old_status == 0 and new_status == 3:
+        elif old_status == TicketStatus.PENDING and new_status == TicketStatus.CLOSED:
             if not (is_super or is_creator):
                 raise CustomException(msg="仅创建人或超管可以取消工单")
-        elif old_status == 1 and new_status == 2:
+        elif old_status == TicketStatus.PROCESSING and new_status == TicketStatus.COMPLETED:
             if not (is_super or is_assignee):
                 raise CustomException(msg="仅处理人或超管可以将工单标记为已完成")
-        elif old_status == 1 and new_status == 3:
+        elif old_status == TicketStatus.PROCESSING and new_status == TicketStatus.CLOSED:
             if not (is_super or is_creator or is_assignee):
                 raise CustomException(msg="仅创建人、处理人或超管可以关闭工单")
-        elif old_status == 2 and new_status == 3:
+        elif old_status == TicketStatus.COMPLETED and new_status == TicketStatus.CLOSED:
             if not (is_super or is_creator):
                 raise CustomException(msg="仅创建人或超管可以确认关闭工单")
 

@@ -454,14 +454,14 @@ def test_localhost_hosts_are_configurable() -> None:
     restricted = Settings(_env_file=None, ALLOW_LOCALHOST_HOSTS=False)
     assert "localhost" not in restricted.ALLOWED_HOSTS
     assert "127.0.0.1" not in restricted.ALLOWED_HOSTS
-    assert restricted.ALLOWED_HOSTS == ["service.fastapiadmin.com", "*.fastapiadmin.com"]
+    assert restricted.ALLOWED_HOSTS == ["resnexus.example.com", "*.resnexus.example.com"]
 
 
 def test_oauth_allowed_hosts_default_is_not_wildcard() -> None:
     """OAuth 回调域名白名单默认不再是 "*"（Host 注入不再自动放行）。"""
     defaults = Settings(_env_file=None)
     assert "*" not in defaults.OAUTH_ALLOWED_HOSTS
-    assert "service.fastapiadmin.com" in defaults.OAUTH_ALLOWED_HOSTS
+    assert "resnexus.example.com" in defaults.OAUTH_ALLOWED_HOSTS
 
 
 def test_health_exposes_scheduler_and_cors_state() -> None:

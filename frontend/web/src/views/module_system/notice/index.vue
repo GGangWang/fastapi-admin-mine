@@ -83,10 +83,7 @@
           max-height="70vh"
         >
           <template #notice_type="{ row }">
-            <FaStatusTag
-              :type="row?.notice_type === '1' ? 'primary' : 'warning'"
-              :label="noticeTypeLabel(row?.notice_type as string)"
-            />
+            <FaDictTag :type="DictTypeEnum.SYS_NOTICE_TYPE" :value="row?.notice_type" />
           </template>
           <template #notice_content>
             <FaMarkdownRenderer :content="detailFormData.notice_content ?? ''" />
@@ -133,11 +130,15 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS, DictTypeEnum.SYS_NOTICE_TYPE]);
+
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { confirmToggleStatus } from "@/hooks/core/useConfirm";
 import NoticeAPI, { type NoticeForm, type NoticeTable } from "@/api/module_system/notice";
 import { renderTableOperationCell, resolveStatusColumns, type TableOperationAction } from "@utils";
-import { useDictStore, useNoticeStore } from "@stores";
+import { useNoticeStore } from "@stores";
 import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue";
 import FaSearchBar from "@/components/forms/fa-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/fa-form/index.vue";
@@ -151,7 +152,6 @@ defineOptions({
   inheritAttrs: false,
 });
 
-const dictStore = useDictStore();
 const noticeStore = useNoticeStore();
 
 type NoticeSearchForm = {
@@ -164,11 +164,8 @@ type NoticeSearchForm = {
   updated_time?: string[];
 };
 
-function noticeTypeLabel(val?: string) {
-  if (!val) return "";
-  const lab = dictStore.getDictLabel("sys_notice_type", val);
-  if (typeof lab === "string") return lab;
-  return lab.dict_label ?? val;
+function noticeTypeLabel(val?: string | number) {
+  return pageDict.label(DictTypeEnum.SYS_NOTICE_TYPE, val);
 }
 
 const searchForm = ref<NoticeSearchForm>({
@@ -185,17 +182,9 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
-const noticeTypeSearchOptions = computed(() =>
-  dictStore.getDictArray("sys_notice_type").map((item) => ({
-    label: item.dict_label,
-    value: item.dict_value,
-  }))
-);
+const noticeTypeSearchOptions = computed(() => pageDict.options(DictTypeEnum.SYS_NOTICE_TYPE));
 
 const noticeSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -251,7 +240,7 @@ const noticeDetailItems: import("@/components/display/fa-descriptions/index.vue"
       label: "状态",
       prop: "status",
       tag: {
-        map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
     },
     { label: "描述", prop: "description" },
@@ -353,10 +342,7 @@ const noticeDialogFormItems = computed<FormItem[]>(() => [
       placeholder: "请选择类型",
       clearable: true,
       class: "w-full! max-w-md",
-      options: dictStore.getDictArray("sys_notice_type").map((item) => ({
-        label: item.dict_label,
-        value: item.dict_value,
-      })),
+      options: pageDict.options(DictTypeEnum.SYS_NOTICE_TYPE),
     },
   },
   { key: "status", label: "状态", type: "radiogroup", span: 24 },
@@ -399,19 +385,13 @@ const {
         prop: "status",
         label: "状态",
         width: 88,
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
       {
         prop: "notice_type",
         label: "类型",
         minWidth: 100,
-        status: {
-          "1": { type: "primary", text: "通知" },
-          "2": { type: "warning", text: "公告" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_NOTICE_TYPE),
       },
       { prop: "description", label: "描述", minWidth: 140, showOverflowTooltip: true },
       {
@@ -592,6 +572,6 @@ async function handleMoreClick(value: "enable" | "disable") {
 }
 
 onMounted(async () => {
-  await dictStore.getDict(["sys_notice_type"]);
+  await pageDict.ready;
 });
 </script>

@@ -244,6 +244,16 @@
 </template>
 
 <script lang="ts" setup>
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([
+  DictTypeEnum.TASK_NODE_TRIGGER_DISPLAY,
+  DictTypeEnum.SYS_ENABLE_STATUS,
+  DictTypeEnum.TASK_JOB_STORE,
+  DictTypeEnum.TASK_EXECUTOR,
+  DictTypeEnum.TASK_NODE_TRIGGER_TYPE,
+]);
+
 defineOptions({
   name: "Node",
   inheritAttrs: false,
@@ -270,18 +280,10 @@ import "codemirror/theme/dracula.css";
 type OptionItem = { label: string; value: string };
 
 /** 存储器选项（对应 ap_scheduler jobstores 配置，不再依赖字典） */
-const jobStoreOptions: OptionItem[] = [
-  { label: "默认(Redis)", value: "default" },
-  { label: "数据库(Sqlalchemy)", value: "sqlalchemy" },
-  { label: "内存(Memory)", value: "memory" },
-];
+const jobStoreOptions: OptionItem[] = pageDict.options(DictTypeEnum.TASK_JOB_STORE, "string");
 
 /** 执行器选项（对应 ap_scheduler executors 配置：default=AsyncIOExecutor / threadpool / processpool） */
-const jobExecutorOptions: OptionItem[] = [
-  { label: "异步协程(事件循环)", value: "default" },
-  { label: "线程池", value: "threadpool" },
-  { label: "进程池", value: "processpool" },
-];
+const jobExecutorOptions: OptionItem[] = pageDict.options(DictTypeEnum.TASK_EXECUTOR, "string");
 
 type NodeSearchForm = {
   name?: string;
@@ -318,16 +320,10 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const nodeTriggerLabelMap: Record<string, string> = {
-  cron: "Cron",
-  interval: "间隔",
-  date: "单次",
-};
-
 function formatNodeTriggerCell(row: NodeTable): string {
   const trigger = row.trigger;
   if (!trigger) return "不排程";
-  const label = nodeTriggerLabelMap[trigger] ?? trigger;
+  const label = pageDict.label(DictTypeEnum.TASK_NODE_TRIGGER_DISPLAY, trigger);
   return row.trigger_args ? `${label} ${row.trigger_args}` : label;
 }
 
@@ -354,10 +350,7 @@ const nodeSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择状态",
-      options: [
-        { label: "启用", value: 0 },
-        { label: "停用", value: 1 },
-      ],
+      options: pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"),
       clearable: true,
     },
     span: 6,
@@ -552,10 +545,7 @@ const {
         label: "状态",
         width: 86,
         align: "center",
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
       {
         prop: "next_run_time",
@@ -738,11 +728,7 @@ const nodeDialogFormItems = computed<FormItem[]>(() => {
       props: {
         clearable: true,
         placeholder: "不排程：仅保存定义，可手动执行一次",
-        options: [
-          { label: "Cron表达式", value: "cron" },
-          { label: "时间间隔", value: "interval" },
-          { label: "固定时间", value: "date" },
-        ],
+        options: pageDict.options(DictTypeEnum.TASK_NODE_TRIGGER_TYPE, "string"),
       },
     },
     {

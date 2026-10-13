@@ -257,6 +257,11 @@ def safe_python_type(value: object, default: str = "str") -> str:
     ``python_type`` 由表单提交且直接落在 ``Mapped[{{ column.python_type }}]`` 这类注解位置，
     必须限定为标识符形态（如 ``str``/``int``/``datetime``/``Decimal``）。
 
+    注意：类型名只出现在 **Python 注解**语境，不进入 JS/TS，因此不能套用
+    :func:`safe_ident` 的 JS 保留字前缀规则——``int``/``float``/``bool`` 本身就是合法
+    Python 类型名，加前缀会生成 ``Mapped[_int]`` 这类未定义名字（曾导致插件启动即 NameError）。
+    这里只做结构安全化（仅保留标识符字符），并对 Python 关键字兜底。
+
     参数:
     - value (object): 原始值。
     - default (str): 兜底类型。
@@ -264,7 +269,14 @@ def safe_python_type(value: object, default: str = "str") -> str:
     返回:
     - str: 合法标识符形式的类型名。
     """
-    return safe_ident(value, default=default)
+    text = "" if value is None else str(value).strip()
+    if not text:
+        return default
+    # 只保留标识符字符，杜绝引号/换行/括号/分号等注入字符进入注解位置
+    text = _IDENT_STRIP_RE.sub("_", text)
+    if text[0].isdigit() or text in _PYTHON_RESERVED:
+        return default
+    return text[:_IDENTIFIER_MAX_LENGTH]
 
 
 def assert_python_syntax(content: str, *, filename: str = "<generated>") -> None:

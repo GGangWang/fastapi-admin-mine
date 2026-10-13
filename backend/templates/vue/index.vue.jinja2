@@ -81,6 +81,9 @@
           :items="detailItems"
           max-height="70vh"
         >
+          {% for column in columns %}{% if column.dict_type %}
+          <template #{{ column.column_name }}="{ row }"><FaDictTag :type="resolveDictType('{{ column.dict_type }}')" :value="row?.{{ column.column_name }}" /></template>
+          {% endif %}{% endfor %}
           {% if has_json_column %}
           {% for column in columns %}
           {% if column.python_type == 'dict' %}
@@ -179,9 +182,7 @@ import {{ class_name }}API, {
   type {{ class_name }}PageQuery,
   type {{ class_name }}Table,
 } from "@/api/{{ package_name }}/{{ module_name }}";
-{% if has_dict_column %}
-import { useDictStore } from "@stores";
-{% endif %}
+
 {% if has_image_column %}
 import { h } from "vue";
 {% endif %}
@@ -191,15 +192,13 @@ defineOptions({
   inheritAttrs: false,
 });
 
-{% if has_dict_column %}
-const dictStore = useDictStore();
-{% endif %}
 
-// 常量定义
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+import { resolveDictType } from "@/utils/dict";
+const pageDict = useDict([DictTypeEnum.SYS_TRUE_FALSE, DictTypeEnum.SYS_ENABLE_STATUS{% for column in columns %}{% if column.dict_type %}, resolveDictType("{{ column.dict_type }}"){% endif %}{% endfor %}]);
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
 const createInitialFormData = (): {{ class_name }}Form => ({
   {% for column in columns %}
@@ -360,12 +359,7 @@ const businessSearchItems = computed(() => {
   {% if column.is_query and column.dict_type and (column.html_type == "select" or column.html_type == "radio") %}
   const item_{{ column.column_name }} = items.find((i: any) => i.key === "{{ column.column_name }}");
   if (item_{{ column.column_name }} && item_{{ column.column_name }}.props) {
-    item_{{ column.column_name }}.props.options = dictStore.getDictArray("{{ column.dict_type }}").map(
-      (d: { dict_label: string; dict_value: string }) => ({
-        label: d.dict_label,
-        value: d.dict_value,
-      })
-    );
+    item_{{ column.column_name }}.props.options = pageDict.options(resolveDictType("{{ column.dict_type }}"), "{{ "number" if column.python_type in ["int", "float"] else "boolean" if column.python_type == "bool" else "string" }}");
   }
   {% endif %}
   {% endfor %}
@@ -418,10 +412,7 @@ const {
         prop: "status",
         label: "状态",
         width: 88,
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
       {% elif column.column_name == "created_id" %}
       {
@@ -446,10 +437,7 @@ const {
         prop: "{{ column.column_name }}",
         label: "{{ comment }}",
         width: 80,
-        status: {
-          true: { type: "success", text: "是" },
-          false: { type: "danger", text: "否" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
       {% elif column.html_type == "imageUpload" %}
       {
@@ -468,7 +456,7 @@ const {
         },
       },
       {% elif (column.html_type == "select" or column.html_type == "radio") and column.dict_type %}
-      { prop: "{{ column.column_name }}", label: "{{ comment }}", minWidth: 120, showOverflowTooltip: true },
+      { prop: "{{ column.column_name }}", label: "{{ comment }}", minWidth: 120, formatter: (row: {{ class_name }}Table) => pageDict.label(resolveDictType("{{ column.dict_type }}"), row.{{ column.column_name }}) },
       {% else %}
       { prop: "{{ column.column_name }}", label: "{{ comment }}", minWidth: 120, showOverflowTooltip: true },
       {% endif %}
@@ -523,7 +511,7 @@ const detailItems: import("@/components/display/fa-descriptions/index.vue").Desc
   {% set parentheseIndex = column_comment.find("（") %}
   {% set comment = column_comment[:parentheseIndex] if parentheseIndex != -1 else column_comment %}
   {% if column.column_name == 'status' %}
-  { label: "状态", prop: "status", tag: { map: { "0": { type: "success", text: "启用" }, "1": { type: "danger", text: "停用" } } } },
+  { label: "状态", prop: "status", tag: { map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS) } },
   {% elif column.column_name == 'created_id' %}
   { label: "创建人", prop: "created_by.name" },
   {% elif column.column_name == 'updated_id' %}
@@ -532,7 +520,9 @@ const detailItems: import("@/components/display/fa-descriptions/index.vue").Desc
   { label: "创建时间", prop: "created_time" },
   {% elif column.column_name == 'updated_time' %}
   { label: "更新时间", prop: "updated_time" },
-  {% elif column.python_type == 'dict' %}
+  {% elif column.dict_type %}
+    { label: "{{ comment }}", prop: "{{ column.column_name }}", slot: "{{ column.column_name }}" },
+    {% elif column.python_type == 'dict' %}
   { label: "{{ comment }}", prop: "{{ column.column_name }}", slot: "{{ column.column_name }}" },
   {% else %}
   { label: "{{ comment }}", prop: "{{ column.column_name }}" },
@@ -572,10 +562,7 @@ const dialogFormItems: FormItem[] = [
     label: "状态",
     type: "radiogroup",
     props: {
-      options: [
-        { label: "启用", value: 0 },
-        { label: "停用", value: 1 },
-      ],
+      options: pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"),
     },
   },
   {% elif column.column_name == "description" %}
@@ -597,24 +584,22 @@ const dialogFormItems: FormItem[] = [
   { key: "{{ column.column_name }}", label: "{{ comment }}", type: "timepicker", props: { placeholder: "请选择{{ comment }}", valueFormat: "HH:mm:ss", style: "width: 100%" } },
   {% elif column.python_type == "date" %}
   { key: "{{ column.column_name }}", label: "{{ comment }}", type: "date", props: { placeholder: "请选择{{ comment }}", valueFormat: "YYYY-MM-DD", style: "width: 100%" } },
+  {% elif dict_type != "" and (column.html_type == "select" or column.html_type == "radio" or column.html_type == "checkbox") %}
+  { key: "{{ column.column_name }}", label: "{{ comment }}", type: "select", placeholder: "请选择{{ comment }}", options: pageDict.options(resolveDictType("{{ dict_type }}"), "{{ "number" if column.python_type in ["int", "float"] else "boolean" if column.python_type == "bool" else "string" }}") },
+  {% elif column.html_type == "select" or column.html_type == "radio" %}
+  { key: "{{ column.column_name }}", label: "{{ comment }}", type: "select", placeholder: "请选择{{ comment }}" },
+  {% elif column.html_type == "checkbox" %}
+  { key: "{{ column.column_name }}", label: "{{ comment }}", type: "checkbox" },
   {% elif column.python_type == "int" or column.python_type == "float" or column.python_type == "Decimal" %}
   { key: "{{ column.column_name }}", label: "{{ comment }}", type: "number", props: { placeholder: "请输入{{ comment }}"{% if column.python_type == "float" or column.python_type == "Decimal" %}, step: 0.01, precision: 2{% endif %} } },
   {% elif column.html_type == "input" %}
   { key: "{{ column.column_name }}", label: "{{ comment }}", type: "input", props: { placeholder: "请输入{{ comment }}" } },
   {% elif column.html_type == "textarea" %}
   { key: "{{ column.column_name }}", label: "{{ comment }}", type: "input", props: { type: "textarea", rows: 4, placeholder: "请输入{{ comment }}" } },
-  {% elif dict_type != "" %}
-  { key: "{{ column.column_name }}", label: "{{ comment }}", type: "select", placeholder: "请选择{{ comment }}", options: dictStore.getDictArray("{{ dict_type }}").map(d => ({ label: d.dict_label, value: d.dict_value })) },
-  {% elif column.html_type == "select" or column.html_type == "radio" %}
-  { key: "{{ column.column_name }}", label: "{{ comment }}", type: "select", placeholder: "请选择{{ comment }}" },
   {% elif column.html_type == "date" %}
   { key: "{{ column.column_name }}", label: "{{ comment }}", type: "date", props: { placeholder: "请选择{{ comment }}", valueFormat: "YYYY-MM-DD", style: "width: 100%" } },
   {% elif column.html_type == "datetime" %}
   { key: "{{ column.column_name }}", label: "{{ comment }}", type: "datetime", props: { placeholder: "请选择{{ comment }}", valueFormat: "YYYY-MM-DD HH:mm:ss", style: "width: 100%" } },
-  {% elif column.html_type == "switch" %}
-  { key: "{{ column.column_name }}", label: "{{ comment }}", type: "switch" },
-  {% elif column.html_type == "checkbox" %}
-  { key: "{{ column.column_name }}", label: "{{ comment }}", type: "checkbox" },
   {% elif column.html_type == "editor" %}
   { key: "{{ column.column_name }}", label: "{{ comment }}", type: "editor", span: 24, props: { height: "300px", placeholder: "请输入{{ comment }}" } },
   {% elif column.html_type == "imageUpload" %}

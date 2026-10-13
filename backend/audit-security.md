@@ -1,8 +1,8 @@
-# FastapiAdmin 安全审计报告：认证 / 授权 / 敏感信息
+# ResNexus 安全审计报告：认证 / 授权 / 敏感信息
 
 - 审计任务：`t4` — 安全审计（认证 / 授权 / 敏感信息）
 - 审计对象：后端（`backend/app`、`backend/main.py`、`backend/env/*`、`backend/sql/*`、`backend/logs/*`）及必要的关联面（`docker/nginx/nginx.conf`、`frontend/web/src/utils/auth/index.ts`、`frontend/web/.env`、git 历史）
-- 工作区：`/Users/tao/workspace/FastapiAdmin`（分支工作树，含未提交改动）
+- 工作区：`/Users/tao/workspace/ResNexus`（分支工作树，含未提交改动）
 - 审计时间点：审计时刻工作区实际内容
 - 约束遵守：**只读审计**。未安装依赖、未启动服务、未提交 git、未做任何破坏性或对外发包的利用尝试；仅新增本报告文件。
 - 证据规则：`文件:行号` 为审计时刻实际内容；命令输出为在本地对工作区/仓库的只读操作结果。所有"可利用性"结论都标注了前置条件，未验证的部分进入第 6 节「待验证」。
@@ -21,7 +21,7 @@
 | **S3** | **high** | 停用/删除用户、重置口令、撤销角色后**既有会话不被撤销**：认证只看 Redis 会话里的 `user_status`，每请求查库只校验"用户存在且未删除"，不校验 DB 的 `status`；会话滑动续期最长 7 天 | `backend/app/core/dependencies.py:162-182`（用会话里的 `user_status`，DB 查询未含 `status` 条件）、`backend/app/modules/system/user/service.py:145-168`（删除用户不清理会话）、`288-295`（重置口令不清理会话）、`backend/app/modules/system/auth/service.py:531-533`（仅登出自身会话）；权限取自会话快照 `dependencies.py:185-189` | 1) `_authenticate` 增加 `user_obj.status != 0 → 401` 并即时清理会话；2) 停用/删除/改密/角色变更后按 `user_id` 扫描并删除 `user_session:{sid}`；3) 会话内权限改为每请求/短 TTL 重算 |
 | **S4** | **high** | 第三方 OAuth 的 `redirect_uri` 完全由请求方指定、无任何域名白名单校验；登录成功后按该地址 302 重定向并把 `access_token`/`refresh_token` 拼进 **URL query** → 钓鱼链接可让受害者把自己的令牌交到攻击者域 | `backend/app/modules/system/auth/oauth_service.py:410-439`（原样保存 `redirect_uri`）、`474-479` + `51-60`（成功重定向携带令牌）、`backend/app/modules/system/auth/controller.py:93-107`；`OAUTH_ALLOWED_HOSTS` 只校验回调域不校验前端回跳域（`setting.py:150`、`oauth_service.py:35-43`） | 1) `redirect_uri` 必须命中配置白名单，否则拒绝（缺失时才回落 `OAUTH_FRONTEND_FALLBACK`）；2) 令牌改为短时一次性 code，由前端换 token，禁止出现在 URL；3) 该端点对 `redirect_uri` 做同源/相对路径限制 |
 | **S5** | **high** | `/api/v1/system/user/register` 无鉴权、无验证码、无开关，任何人可无限注册账号；同时登录验证码是"假滑块"（服务端只查 key 状态，无任何人机证据），`/captcha/get` + `/captcha/slider/complete` 可脚本化 → 账号爆破与刷号成本极低 | `backend/app/modules/system/user/controller.py:84-92`（无依赖）、`backend/app/core/dependencies.py:192-234`（授权类与注册无关）、`backend/app/modules/system/auth/service.py:540-549`（作者自述"只能提高滥用成本"）、`196-204`、`155-173`（限流仅按 IP，10 次/分钟） | 1) 注册接口加开关（默认关）+ 验证码 + 邮箱/短信校验；2) 换服务端出题的图形/行为验证码；3) 登录限流改为 账号+IP 双维度并收紧窗口 |
-| **S6** | **high** | DEBUG 级别下数据库驱动把**含实参值的完整 SQL** 写入日志，口令哈希明文落盘；`backend/logs/fastapiadmin.log` 中已有 24 行包含种子口令哈希 | `backend/app/core/logger.py:57,71-94`（`aiosqlite` 未列入降噪名单）、实测 `backend/logs/fastapiadmin.log:8407`（见 §7.2）；`backend/.gitignore` 未忽略日志本身，但 `backend/logs` 已在根 `.gitignore` 中 | 1) 将 `aiosqlite`/`aioboto3` 等驱动 logger 一并置为 WARNING；2) DEBUG 级别禁止写文件 sink，或对 SQL 值做脱敏；3) 清理现存日志并按需轮换密钥（哈希已在本地明文出现） |
+| **S6** | **high** | DEBUG 级别下数据库驱动把**含实参值的完整 SQL** 写入日志，口令哈希明文落盘；`backend/logs/resnexus.log` 中已有 24 行包含种子口令哈希 | `backend/app/core/logger.py:57,71-94`（`aiosqlite` 未列入降噪名单）、实测 `backend/logs/resnexus.log:8407`（见 §7.2）；`backend/.gitignore` 未忽略日志本身，但 `backend/logs` 已在根 `.gitignore` 中 | 1) 将 `aiosqlite`/`aioboto3` 等驱动 logger 一并置为 WARNING；2) DEBUG 级别禁止写文件 sink，或对 SQL 值做脱敏；3) 清理现存日志并按需轮换密钥（哈希已在本地明文出现） |
 
 ### 1.2 可排期修复（medium）
 
@@ -61,7 +61,7 @@
 - `SECRET_KEY` 的声明带默认值，且注释声称"必须通过环境变量设置，无默认值"，但代码并未强制：
   `backend/app/config/setting.py:66`
   ```python
-  SECRET_KEY: str = "fastapiadmin-dev-secret-key-do-not-use-in-production"
+  SECRET_KEY: str = "resnexus-dev-secret-key-do-not-use-in-production"
   ```
 - `backend/env/.env.dev`、`backend/env/.env.prod` **都不包含 `SECRET_KEY`**（见 §7.4 的 `grep` 结果），docker 编排同样未注入（`docker/audit-deploy.md` B1）。配置源为 `.env.{ENVIRONMENT}`（`setting.py:16-21,324-329`），因此所有环境实际使用上述公开字符串。
 - 令牌签发/校验都使用该密钥与 `HS256`：`backend/app/core/security.py:112-116`、`139`。`algorithms` 固定为配置算法（无 `alg=none` 风险）。
@@ -156,7 +156,7 @@
 **事实**
 
 - `setup_logger` 把根 logger 与所有既有 logger 接到 `InterceptHandler`，并把 `LOGGER_LEVEL`（dev 默认 `DEBUG`）作为级别；降噪白名单**不含 `aiosqlite`**：`backend/app/core/logger.py:49-94`（`aiomysql` 在列，`aiosqlite` 不在）。
-- 实测日志中 24 行包含种子口令哈希明文，例如 `backend/logs/fastapiadmin.log:8407`：
+- 实测日志中 24 行包含种子口令哈希明文，例如 `backend/logs/resnexus.log:8407`：
   ```
   2026-10-04 03:57:52.396 | DEBUG | aiosqlite.core:_connection_worker_thread:62 - executing functools.partial(..., 'INSERT INTO sys_user (username, password, name, ...' ... pbkdf2-sha256$600000$XX20aO1v73xS0JnoewXNtw==$PEaVHV1N5L7PfYQw2lCAQOc4h
   ```
@@ -340,12 +340,12 @@ MATCH: 123456
 ### 7.2 日志中的口令哈希（本机只读 grep）
 
 ```
-$ grep -rc "pbkdf2-sha256" backend/logs/fastapiadmin.log
+$ grep -rc "pbkdf2-sha256" backend/logs/resnexus.log
 24
-$ sed -n '8407p' backend/logs/fastapiadmin.log | grep -o "pbkdf2-sha256\$[0-9]*\$[^']*"
+$ sed -n '8407p' backend/logs/resnexus.log | grep -o "pbkdf2-sha256\$[0-9]*\$[^']*"
 pbkdf2-sha256$600000$XX20aO1v73xS0JnoewXNtw==$PEaVHV1N5L7PfYQw2lCAQOc4h
 $ grep -rc "Bearer " backend/logs/*.log
-backend/logs/fastapiadmin.log:0        # 未发现令牌落日志
+backend/logs/resnexus.log:0        # 未发现令牌落日志
 ```
 
 ### 7.3 git 历史中的真实凭据（只读）

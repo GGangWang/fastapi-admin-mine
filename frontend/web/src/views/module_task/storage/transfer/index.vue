@@ -86,7 +86,7 @@
         </template>
         <template #status="{ row }">
           <ElTag :type="statusTypeMap[row.status as TransferStatus] || 'info'">{{
-            statusText[row.status as TransferStatus] || row.status
+            pageDict.label(DictTypeEnum.STORAGE_TRANSFER_STATUS, row.status)
           }}</ElTag>
         </template>
         <template #progress="{ row }">
@@ -306,7 +306,7 @@
               <div class="flex items-center gap-2">
                 <ElTag :type="idx === 0 ? 'primary' : 'warning'" size="small">#{{ idx + 1 }}</ElTag>
                 <ElTag :type="statusTypeMap[step.status] || 'info'" size="small">{{
-                  statusText[step.status] || step.status
+                  pageDict.label(DictTypeEnum.STORAGE_TRANSFER_STATUS, step.status)
                 }}</ElTag>
                 <span class="ml-auto text-xs text-(--el-text-color-secondary)"
                   >{{ step.progress }}% · {{ formatSpeed(step.speed) }}</span
@@ -348,6 +348,15 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([
+  DictTypeEnum.STORAGE_TRANSFER_DISPLAY_MODE,
+  DictTypeEnum.STORAGE_TRANSFER_STATUS,
+  DictTypeEnum.STORAGE_TRANSFER_MODE,
+  DictTypeEnum.STORAGE_SOURCE_MODE,
+]);
+
 import TransferAPI, {
   TransferStream,
   type TransferPushMessage,
@@ -443,7 +452,7 @@ const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
 const statusOptions = computed<{ label: string; value: string }[]>(() =>
-  Object.entries(statusText).map(([value, label]) => ({ label, value }))
+  pageDict.options(DictTypeEnum.STORAGE_TRANSFER_STATUS)
 );
 
 const transferSearchItems = computed<SearchFormItem[]>(() => [
@@ -530,13 +539,6 @@ function onResetSearch() {
 }
 
 // ── 状态 / 格式化 ─────────────────────────────────────────────────────
-const statusText: Record<TransferStatus, string> = {
-  pending: "等待中",
-  running: "传输中",
-  success: "成功",
-  failed: "失败",
-  canceled: "已取消",
-};
 const statusTypeMap: Record<TransferStatus, "info" | "warning" | "success" | "danger"> = {
   pending: "info",
   running: "warning",
@@ -643,10 +645,7 @@ const createFormItems = computed<FormItem[]>(() => [
     label: "传输方式",
     type: "radiogroup",
     props: {
-      options: [
-        { label: "多目标（同时传输到多个存储源）", value: "parallel" },
-        { label: "链式（按目标顺序逐跳传输）", value: "chain" },
-      ],
+      options: pageDict.options(DictTypeEnum.STORAGE_TRANSFER_MODE, "string"),
     },
   },
   {
@@ -654,10 +653,7 @@ const createFormItems = computed<FormItem[]>(() => [
     label: "源类型",
     type: "radiogroup",
     props: {
-      options: [
-        { label: "远端存储源", value: "remote" },
-        { label: "本地文件", value: "local" },
-      ],
+      options: pageDict.options(DictTypeEnum.STORAGE_SOURCE_MODE, "string"),
     },
   },
   {
@@ -881,10 +877,7 @@ const transferDetailItems: DescriptionsItem[] = [
     label: "类型",
     prop: "task_type",
     tag: {
-      map: {
-        chain: { type: "warning", text: "链式" },
-        parallel: { type: "primary", text: "多目标" },
-      },
+      map: pageDict.tagMap(DictTypeEnum.STORAGE_TRANSFER_DISPLAY_MODE),
     },
   },
   { label: "来源", prop: "source", slot: "source" },
@@ -892,13 +885,7 @@ const transferDetailItems: DescriptionsItem[] = [
     label: "状态",
     prop: "status",
     tag: {
-      map: {
-        pending: { type: "info", text: "等待中" },
-        running: { type: "warning", text: "传输中" },
-        success: { type: "success", text: "成功" },
-        failed: { type: "danger", text: "失败" },
-        canceled: { type: "info", text: "已取消" },
-      },
+      map: pageDict.tagMap(DictTypeEnum.STORAGE_TRANSFER_STATUS),
     },
   },
   { label: "总大小", prop: "total_size", slot: "total_size" },

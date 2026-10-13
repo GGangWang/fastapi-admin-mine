@@ -12,7 +12,7 @@
  * - 配置查询 - 提供工具函数快速查询组件配置
  *
  * @module config/component
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 
 import { defineAsyncComponent } from "vue";

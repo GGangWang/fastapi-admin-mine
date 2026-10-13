@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# FastapiAdmin 成品部署脚本（本地构建 → 服务器只接收成品）
+# ResNexus 成品部署脚本（本地构建 → 服务器只接收成品）
 #
 # 设计目标：
 #   1. 服务器上不放业务源码、不跑构建，只接收构建好的成品；
@@ -29,8 +29,8 @@
 set -euo pipefail
 
 SERVER="${FA_SERVER:-8.137.99.5}"
-REMOTE_ROOT="${FA_REMOTE_ROOT:-/home/FastapiAdmin}"
-BACKUP_DIR="${FA_BACKUP_DIR:-/home/FastapiAdmin/backups}"
+REMOTE_ROOT="${FA_REMOTE_ROOT:-/home/ResNexus}"
+BACKUP_DIR="${FA_BACKUP_DIR:-/home/ResNexus/backups}"
 BACKUP_KEEP="${FA_BACKUP_KEEP:-5}"      # 每个标签最多保留的备份份数
 IMAGE_KEEP="${FA_IMAGE_KEEP:-2}"        # 每类镜像最多保留的版本数（当前 + 回滚点）
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -273,7 +273,7 @@ verify() {
   local fail=0
   for p in "/" "/web/" "/app/" "/api/v1/monitor/health/check"; do
     printf '  %-42s ' "$p"
-    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://service.fastapiadmin.com${p}")
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://resnexus.example.com${p}")
     printf 'HTTP %s\n' "$code"
     [ "$code" = "200" ] || fail=1
   done

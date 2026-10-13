@@ -16,11 +16,12 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
+from app.common.legacy_identifiers import LEGACY_KDF_INFO
 from app.config.setting import settings
 from app.core.logger import logger
 
 # HKDF 域分隔：与 SECRET_KEY 用于其它目的时派生出不同密钥
-_INFO = b"fastapiadmin:data-encryption:v1"
+_INFO = b"resnexus:data-encryption:v1"
 # Fernet token 首字节为版本 0x80，url-safe base64 编码后固定以 "gAAAAA" 开头
 _TOKEN_PREFIX = "gAAAAA"
 
@@ -32,9 +33,9 @@ class CryptoUtil:
     _fernets: list[Fernet] = []
 
     @classmethod
-    def _derive_key(cls, secret: str) -> bytes:
+    def _derive_key(cls, secret: str, info: bytes = _INFO) -> bytes:
         return base64.urlsafe_b64encode(
-            HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=_INFO).derive(secret.encode("utf-8"))
+            HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=info).derive(secret.encode("utf-8"))
         )
 
     @classmethod
@@ -49,6 +50,7 @@ class CryptoUtil:
             primaries = [settings.DATA_ENCRYPTION_KEY or settings.SECRET_KEY]
             primaries += [key.strip() for key in (settings.DATA_ENCRYPTION_OLD_KEYS or "").split(",") if key.strip()]
             fernets = [Fernet(cls._derive_key(secret)) for secret in primaries]
+            fernets.extend(Fernet(cls._derive_key(secret, LEGACY_KDF_INFO)) for secret in primaries)
             fernets.append(Fernet(cls._legacy_key(settings.SECRET_KEY)))
             cls._fernets = fernets
             cls._cache_signature = signature

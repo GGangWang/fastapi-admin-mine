@@ -1,4 +1,4 @@
-# 多智能体协作 Playbook（FastapiAdmin）
+# 多智能体协作 Playbook（ResNexus）
 
 > 本文件只记录**团队插件本身不提供**的部分。通用协作策略由运行时自动注入
 > （显式委派才建团队、共享 cwd、文件陈旧版本恢复、Bash/formatter/codegen 风险、task/write-scope 协调、

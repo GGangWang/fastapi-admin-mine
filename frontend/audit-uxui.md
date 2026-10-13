@@ -1,4 +1,4 @@
-# FastapiAdmin 前端 UX/UI 审计报告（Web + 移动端）
+# ResNexus 前端 UX/UI 审计报告（Web + 移动端）
 
 - 审计轮次：摸底审计第 1 轮（**只读，未修改任何仓库文件**，本报告为唯一新增文件）
 - 审计对象：`frontend/web`（Vue3 + Vite + TS + Element Plus 2.14.3 + Tailwind v4 + Pinia）、`frontend/app`（uni-app + wot-ui + UnoCSS presetWot）、`frontend/docs`（VitePress）
@@ -472,7 +472,7 @@
 
 ## 9. 附录：统计口径与复现命令
 
-所有统计均在仓库根目录 `/Users/tao/workspace/FastapiAdmin` 下执行，只读。
+所有统计均在仓库根目录 `/Users/tao/workspace/ResNexus` 下执行，只读。
 
 **模板内硬编码中文（第 1 节 / P1-2）**
 ```bash

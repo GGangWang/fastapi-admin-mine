@@ -52,6 +52,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.STORAGE_TRANSPORT_MODE]);
+
 import { Close, Share } from "@element-plus/icons-vue";
 import FaForm from "@/components/forms/fa-form/index.vue";
 
@@ -98,10 +102,7 @@ const edgeFormItems = computed(() => [
     type: "radiogroup",
     span: 24,
     props: {
-      options: [
-        { label: "流式传输", value: "stream" },
-        { label: "分片传输", value: "multipart" },
-      ],
+      options: pageDict.options(DictTypeEnum.STORAGE_TRANSPORT_MODE, "string"),
     },
   },
   {

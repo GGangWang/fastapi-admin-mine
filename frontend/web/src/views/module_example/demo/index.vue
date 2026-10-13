@@ -153,6 +153,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS, DictTypeEnum.SYS_TRUE_FALSE]);
+
 import { Plus, Delete } from "@element-plus/icons-vue";
 import {
   renderTableOperationCell,
@@ -181,10 +185,7 @@ defineOptions({
 });
 
 // 常量定义
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
 const createInitialFormData = (): DemoForm => ({
   id: undefined,
@@ -283,10 +284,7 @@ const {
         prop: "status",
         label: "状态",
         width: 88,
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
       { prop: "int_val", label: "整数", minWidth: 88, showOverflowTooltip: true },
       { prop: "bigint_val", label: "大整数", minWidth: 100, showOverflowTooltip: true },
@@ -295,10 +293,7 @@ const {
         prop: "bool_val",
         label: "布尔",
         width: 80,
-        status: {
-          true: { type: "success", text: "是" },
-          false: { type: "danger", text: "否" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
       { prop: "date_val", label: "日期", minWidth: 112, showOverflowTooltip: true },
       { prop: "time_val", label: "时间", minWidth: 96, showOverflowTooltip: true },
@@ -382,7 +377,7 @@ const demoDetailItems: import("@/components/display/fa-descriptions/index.vue").
       label: "状态",
       prop: "status",
       tag: {
-        map: { "0": { type: "success", text: "启用" }, "1": { type: "danger", text: "停用" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
     },
     { label: "整数", prop: "int_val" },
@@ -392,7 +387,7 @@ const demoDetailItems: import("@/components/display/fa-descriptions/index.vue").
       label: "布尔值",
       prop: "bool_val",
       tag: {
-        map: { true: { type: "success", text: "是" }, false: { type: "danger", text: "否" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
     },
     { label: "日期", prop: "date_val" },
@@ -420,10 +415,7 @@ const demoDialogFormItems: FormItem[] = [
     label: "状态",
     type: "radiogroup",
     props: {
-      options: [
-        { label: "启用", value: 0 },
-        { label: "停用", value: 1 },
-      ],
+      options: pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"),
     },
   },
   { key: "int_val", label: "整数", type: "number", props: { placeholder: "请输入整数" } },

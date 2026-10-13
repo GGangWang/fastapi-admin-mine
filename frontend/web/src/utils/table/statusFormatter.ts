@@ -121,7 +121,10 @@ export function resolveStatusColumns<T = Record<string, unknown>>(
           const rawValue = col.prop ? (row as Record<string, unknown>)[col.prop] : row;
           // boolean 值转换为字符串键进行查找
           const value = typeof rawValue === "boolean" ? String(rawValue) : rawValue;
-          const item = map[value as string | number] ?? { type: "info" as const, text: "—" };
+          const item = map[value as string | number] ?? {
+            type: "info" as const,
+            text: rawValue == null ? "" : String(rawValue),
+          };
           return h(StatusTag, {
             type: item.type,
             label: item.text,

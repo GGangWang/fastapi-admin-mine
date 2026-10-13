@@ -18,7 +18,7 @@
  * - en: English
  *
  * @module locales
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 
 import { LanguageEnum } from "@/enums/appEnum";

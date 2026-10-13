@@ -1,3 +1,6 @@
+import { useDictStoreHook } from "@/store/modules/dict.store";
+import { DictTypeEnum } from "@/constants/dict-types";
+import { dictOptions, transformDict } from "@/utils/dict";
 /**
  * 存储协议展示工具：颜色 / 标签
  * 供画布节点、节点配置面板、节点面板统一使用，避免三处重复定义。
@@ -13,17 +16,6 @@ export const PROTOCOL_COLOR: Record<string, string> = {
   cos: "#e6a23c",
 };
 
-export const PROTOCOL_LABEL: Record<string, string> = {
-  local: "本地",
-  ftp: "FTP",
-  ftps: "FTPS",
-  sftp: "SFTP",
-  s3: "S3",
-  oss: "OSS",
-  obs: "OBS",
-  cos: "COS",
-};
-
 /** 协议主题色（未知协议回退灰色） */
 export function protocolColor(protocol?: string): string {
   return PROTOCOL_COLOR[(protocol || "").toLowerCase()] || "#909399";
@@ -32,7 +24,10 @@ export function protocolColor(protocol?: string): string {
 /** 协议中文标签（未知协议原样返回大写） */
 export function protocolLabel(protocol?: string): string {
   const p = (protocol || "").toLowerCase();
-  return PROTOCOL_LABEL[p] || p || "存储";
+  return transformDict(
+    dictOptions(useDictStoreHook().getDictArray(DictTypeEnum.STORAGE_PROTOCOL_SHORT)),
+    p
+  );
 }
 
 /** 协议标签 + 主机地址 */

@@ -179,6 +179,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_OPERATION_STATUS, DictTypeEnum.SYS_LOGIN_STATUS]);
+
 import OperationLogAPI, {
   type OperationLogPageQuery,
   type OperationLogTable,
@@ -490,10 +494,7 @@ const loginShowSearchBar = ref(true);
 const loginSearchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const loginSearchBarRules: Record<string, unknown> = {};
 
-const LOGIN_STATUS_OPTIONS = [
-  { label: "成功", value: 1 },
-  { label: "失败", value: 2 },
-] as const;
+const LOGIN_STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_LOGIN_STATUS, "number");
 
 const loginSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -573,10 +574,7 @@ const {
         prop: "status",
         label: "登录状态",
         width: 88,
-        status: {
-          1: { type: "success", text: "成功" },
-          0: { type: "danger", text: "失败" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_OPERATION_STATUS),
       },
       { prop: "username", label: "用户名", minWidth: 120, showOverflowTooltip: true },
       {

@@ -290,19 +290,22 @@
         >
           <template #ticket_type>
             <ElSelect v-model="formData.ticket_type" placeholder="请选择工单类型">
-              <ElOption label="💡 建议" value="suggestion" />
-              <ElOption label="🐛 缺陷" value="bug" />
-              <ElOption label="⚡ 优化" value="optimize" />
-              <ElOption label="📋 其他" value="other" />
-            </ElSelect>
+              <ElOption
+                v-for="option in pageDict.options(DictTypeEnum.SYS_TICKET_TYPE, 'string')"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+            /></ElSelect>
           </template>
           <template #status>
             <ElRadioGroup v-model="formData.status">
-              <ElRadio :value="0">待处理</ElRadio>
-              <ElRadio :value="1">处理中</ElRadio>
-              <ElRadio :value="2">已完成</ElRadio>
-              <ElRadio :value="3">已关闭</ElRadio>
-            </ElRadioGroup>
+              <ElRadio
+                v-for="option in pageDict.options(DictTypeEnum.SYS_TICKET_STATUS, 'number')"
+                :key="option.value"
+                :value="option.value"
+                >{{ option.label }}</ElRadio
+              ></ElRadioGroup
+            >
           </template>
           <template #assigned_id>
             <FaUserTableSelect
@@ -348,11 +351,13 @@
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-(--el-text-color-primary)">状态</label>
               <ElRadioGroup v-model="formData.status">
-                <ElRadio :value="0">待处理</ElRadio>
-                <ElRadio :value="1">处理中</ElRadio>
-                <ElRadio :value="2">已完成</ElRadio>
-                <ElRadio :value="3">已关闭</ElRadio>
-              </ElRadioGroup>
+                <ElRadio
+                  v-for="option in pageDict.options(DictTypeEnum.SYS_TICKET_STATUS, 'number')"
+                  :key="option.value"
+                  :value="option.value"
+                  >{{ option.label }}</ElRadio
+                ></ElRadioGroup
+              >
             </div>
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-(--el-text-color-primary)">回复内容</label>
@@ -372,6 +377,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_TICKET_STATUS, DictTypeEnum.SYS_TICKET_TYPE]);
+
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import TicketAPI, {
   getTicketComments,
@@ -432,19 +441,9 @@ const searchForm = ref<TicketSearchForm>({
 });
 const showSearchBar = ref(true);
 
-const STATUS_OPTIONS = [
-  { label: "待处理", value: 0 },
-  { label: "处理中", value: 1 },
-  { label: "已完成", value: 2 },
-  { label: "已关闭", value: 3 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_TICKET_STATUS, "number");
 
-const TICKET_TYPE_OPTIONS = [
-  { label: "💡 建议", value: "suggestion" },
-  { label: "🐛 缺陷", value: "bug" },
-  { label: "⚡ 优化", value: "optimize" },
-  { label: "📋 其他", value: "other" },
-] as const;
+const TICKET_TYPE_OPTIONS = pageDict.options(DictTypeEnum.SYS_TICKET_TYPE, "string");
 
 const ticketSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -582,37 +581,17 @@ function typeIconClass(t: string) {
   return TYPE_ICON_CLASSES[t] || TYPE_ICON_CLASSES.other;
 }
 
-const TYPE_MAP: Record<string, string> = {
-  suggestion: "建议",
-  bug: "缺陷",
-  optimize: "优化",
-  other: "其他",
-};
-
-const STATUS_MAP: Record<number, string> = {
-  0: "待处理",
-  1: "处理中",
-  2: "已完成",
-  3: "已关闭",
-};
-
 function typeLabel(t: string) {
-  return TYPE_MAP[t] || t || "其他";
+  return pageDict.label(DictTypeEnum.SYS_TICKET_TYPE, t);
 }
 function statusLabel(s: number) {
-  return STATUS_MAP[s] || String(s);
+  return pageDict.label(DictTypeEnum.SYS_TICKET_STATUS, s);
 }
-function typeTag(t: string): any {
-  return { suggestion: "success", bug: "danger", optimize: "warning", other: "info" }[t] || "info";
+function typeTag(t: string) {
+  return pageDict.tagMap(DictTypeEnum.SYS_TICKET_TYPE)[t]?.type ?? "info";
 }
-function statusTagType(s: string): "warning" | "info" | "success" | "danger" | undefined {
-  const map: Record<number, "warning" | "info" | "success" | "danger"> = {
-    0: "warning",
-    1: "info",
-    2: "success",
-    3: "info",
-  };
-  return map[Number(s)];
+function statusTagType(s: string) {
+  return pageDict.tagMap(DictTypeEnum.SYS_TICKET_STATUS)[s]?.type ?? "info";
 }
 
 // ─── 多选 ───

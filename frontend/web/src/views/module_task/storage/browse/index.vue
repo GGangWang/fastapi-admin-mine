@@ -583,6 +583,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.STORAGE_LINK_EXPIRY]);
+
 import { useRoute } from "vue-router";
 import { saveAs } from "file-saver";
 import {
@@ -1458,12 +1462,7 @@ function onRowMoreCommand(cmd: string, row: StorageObject) {
 }
 
 // ─── 文件操作：分享（对象存储预签名链接） ───────────────────────────
-const shareExpireOptions = [
-  { label: "1小时", value: 3600 },
-  { label: "1天", value: 86400 },
-  { label: "3天", value: 259200 },
-  { label: "7天", value: 604800 },
-];
+const shareExpireOptions = pageDict.options(DictTypeEnum.STORAGE_LINK_EXPIRY, "number");
 const shareDialog = reactive({
   visible: false,
   loading: false,

@@ -1,186 +1,148 @@
-from typing import Annotated, Any
+import json
+from io import BytesIO
+from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Security, status
-from fastapi.responses import JSONResponse
-from redis.asyncio.client import Redis
+from fastapi import APIRouter, Body, Depends, Query, Security
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.response import ResponseSchema, SuccessResponse
-from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema, PaginationQueryParam
+from app.common.response import CreatedResponse, ResponseSchema, SuccessResponse
+from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission, db_getter, redis_getter
 from app.core.router_class import OperationLogRoute
 
-from .schema import (
-    DictDataCreateSchema,
-    DictDataOutSchema,
-    DictDataQueryParam,
-    DictDataUpdateSchema,
-    DictTypeCreateSchema,
-    DictTypeOutSchema,
-    DictTypeQueryParam,
-    DictTypeUpdateSchema,
-)
-from .service import DictDataService, DictTypeService
+from .schema import DictNodeOut, DictNodeQuery, DictNodeWrite, DictTypesQuery
+from .service import DictService, build_tree, export_rows, iter_json
 
 DictRouter = APIRouter(route_class=OperationLogRoute, prefix="/dict", tags=["字典管理"])
+DB = Annotated[AsyncSession, Depends(db_getter)]
+Cache = Annotated[Redis, Depends(redis_getter)]
+Read = Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:query", "module_system:dict_data:query"]))]
+Create = Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:create", "module_system:dict_data:create"]))]
+Edit = Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:update", "module_system:dict_data:update"]))]
+Delete = Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:delete", "module_system:dict_data:delete"]))]
+Export = Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:export", "module_system:dict_data:export"]))]
 
 
-@DictRouter.get("/type/detail/{id}", summary="获取字典类型详情", response_model=ResponseSchema[DictTypeOutSchema])
-async def get_type_detail_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:detail"]))],
-    id: Annotated[int, Path(description="字典类型ID", ge=1)],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-) -> JSONResponse:
-    result_dict: DictTypeOutSchema = await DictTypeService(auth, db).detail(id=id)
-    return SuccessResponse(data=result_dict, msg="获取字典类型详情成功")
+@DictRouter.get("/nodes", response_model=ResponseSchema[PageResultSchema[DictNodeOut]])
+async def nodes(auth: Read, db: DB, page: Annotated[PaginationQueryParam, Depends()], search: Annotated[DictNodeQuery, Query()]):
+    return SuccessResponse(data=await DictService(auth, db).listing(search, page.page_no, page.page_size))
 
 
-@DictRouter.get("/type/list", summary="查询字典类型", response_model=ResponseSchema[PageResultSchema[DictTypeOutSchema]])
-async def get_type_list_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:query"]))],
-    page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[DictTypeQueryParam, Query()],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-) -> JSONResponse:
-    result_dict: PageResultSchema[DictTypeOutSchema] = await DictTypeService(auth, db).page(
-        page_no=page.page_no,
-        page_size=page.page_size,
-        search=search,
-        order_by=page.order_by,
-    )
-    return SuccessResponse(data=result_dict, msg="查询字典类型列表成功")
+@DictRouter.get("/nodes/{key}", response_model=ResponseSchema[DictNodeOut])
+async def detail(key: str, auth: Read, db: DB):
+    service = DictService(auth, db)
+    result = await service.detail(key)
+    service.require("query", result["dict_level"])
+    return SuccessResponse(data=result)
 
 
-@DictRouter.get("/type/optionselect", summary="获取全部字典类型", response_model=ResponseSchema[list[DictTypeOutSchema]])
-async def get_type_optionselect_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:query"]))],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-) -> JSONResponse:
-    result_dict_list: list[DictTypeOutSchema] = await DictTypeService(auth, db).get_list()
-    return SuccessResponse(data=result_dict_list, msg="获取字典类型列表成功")
+@DictRouter.get("/nodes/{key}/ancestors", response_model=ResponseSchema[list[DictNodeOut]])
+async def ancestors(key: str, auth: Read, db: DB):
+    service = DictService(auth, db)
+    result = await service.ancestors(key)
+    service.require("query", result[-1]["dict_level"])
+    return SuccessResponse(data=result)
 
 
-@DictRouter.post("/type/create", status_code=status.HTTP_201_CREATED, summary="创建字典类型", response_model=ResponseSchema[DictTypeOutSchema])
-async def create_type_controller(
-    redis: Annotated[Redis, Depends(redis_getter)],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:create"]))],
-    data: Annotated[DictTypeCreateSchema, Body(description="字典类型创建参数")],
-) -> JSONResponse:
-    result_dict: DictTypeOutSchema = await DictTypeService(auth, db).create(redis=redis, data=data)
-    return SuccessResponse(data=result_dict, msg="创建字典类型成功")
+@DictRouter.post("/nodes", status_code=201, response_model=ResponseSchema[DictNodeOut])
+async def create(data: DictNodeWrite, auth: Create, db: DB, redis: Cache):
+    return CreatedResponse(data=await DictService(auth, db).save(redis, data))
 
 
-@DictRouter.put("/type/update/{id}", summary="修改字典类型", response_model=ResponseSchema[DictTypeOutSchema])
-async def update_type_controller(
-    redis: Annotated[Redis, Depends(redis_getter)],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:update"]))],
-    id: Annotated[int, Path(description="字典类型ID", ge=1)],
-    data: Annotated[DictTypeUpdateSchema, Body(description="字典类型修改参数")],
-) -> JSONResponse:
-    result_dict: DictTypeOutSchema = await DictTypeService(auth, db).update(redis=redis, id=id, data=data)
-    return SuccessResponse(data=result_dict, msg="修改字典类型成功")
+@DictRouter.put("/nodes/{key}", response_model=ResponseSchema[DictNodeOut])
+async def update(key: str, data: DictNodeWrite, auth: Edit, db: DB, redis: Cache):
+    return SuccessResponse(data=await DictService(auth, db).save(redis, data, key))
 
 
-@DictRouter.delete("/type/delete", summary="删除字典类型", response_model=ResponseSchema[None])
-async def delete_type_controller(
-    redis: Annotated[Redis, Depends(redis_getter)],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:delete"]))],
-    ids: Annotated[list[int], Body(description="字典类型ID列表")],
-) -> JSONResponse:
-    await DictTypeService(auth, db).delete(redis=redis, ids=ids)
-    return SuccessResponse(msg="删除字典类型成功")
+@DictRouter.delete("/nodes", response_model=ResponseSchema[None])
+async def delete(keys: Annotated[list[int | str], Body()], auth: Delete, db: DB, redis: Cache):
+    await DictService(auth, db).delete(redis, keys)
+    return SuccessResponse()
 
 
-@DictRouter.patch("/type/status/batch", summary="批量修改字典类型状态", response_model=ResponseSchema[None])
-async def batch_set_available_dict_type_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_type:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-) -> JSONResponse:
-    await DictTypeService(auth, db).set_available(data=data)
-    return SuccessResponse(msg="批量修改字典类型状态成功")
+@DictRouter.get("/tree/{dict_type}", response_model=ResponseSchema[list[dict]])
+async def tree(dict_type: str, db: DB, redis: Cache):
+    envelope = json.loads(SuccessResponse().body)
+    envelope["data"] = build_tree(await DictService(AuthSchema(), db).effective(dict_type, redis))
+    return StreamingResponse(iter_json(envelope), media_type="application/json")
 
 
-@DictRouter.get("/data/detail/{id}", summary="获取字典数据详情", response_model=ResponseSchema[DictDataOutSchema])
-async def get_data_detail_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:detail"]))],
-    id: Annotated[int, Path(description="字典数据ID", ge=1)],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-) -> JSONResponse:
-    result_dict: DictDataOutSchema = await DictDataService(auth, db).detail(id=id)
-    return SuccessResponse(data=result_dict, msg="获取字典数据详情成功")
+@DictRouter.get("/children/{key}", response_model=ResponseSchema[list[DictNodeOut]])
+async def children(key: str, db: DB, redis: Cache):
+    service = DictService(AuthSchema(), db)
+    node = await service.detail(key)
+    return SuccessResponse(data=[row for row in await service.effective(node["dict_type"], redis) if row["parent_id"] == node["id"]])
 
 
-@DictRouter.get("/data/list", summary="查询字典数据", response_model=ResponseSchema[PageResultSchema[DictDataOutSchema]])
-async def get_data_list_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:query"]))],
-    page: Annotated[PaginationQueryParam, Depends()],
-    search: Annotated[DictDataQueryParam, Query()],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-) -> JSONResponse:
-    order_by: list[dict[str, str]] = [{"order": "asc"}]
-    if page.order_by:
-        order_by = page.order_by
-    result_dict: PageResultSchema[DictDataOutSchema] = await DictDataService(auth, db).page(
-        page_no=page.page_no,
-        page_size=page.page_size,
-        search=search,
-        order_by=order_by,
-    )
-    return SuccessResponse(data=result_dict, msg="查询字典数据列表成功")
+@DictRouter.post("/types", response_model=ResponseSchema[dict[str, list[dict]]])
+async def types(data: DictTypesQuery, db: DB, redis: Cache):
+    service = DictService(AuthSchema(), db)
+    result = {code: (build_tree(await service.effective(code, redis)) if data.mode == "tree" else await service.options(code, redis)) for code in dict.fromkeys(data.dict_types)}
+    if data.mode == "tree":
+        envelope = json.loads(SuccessResponse().body)
+        envelope["data"] = result
+        return StreamingResponse(iter_json(envelope), media_type="application/json")
+    return SuccessResponse(data=result)
 
 
-@DictRouter.post("/data/create", status_code=status.HTTP_201_CREATED, summary="创建字典数据", response_model=ResponseSchema[DictDataOutSchema])
-async def create_data_controller(
-    redis: Annotated[Redis, Depends(redis_getter)],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:create"]))],
-    data: Annotated[DictDataCreateSchema, Body(description="字典数据创建参数")],
-) -> JSONResponse:
-    result_dict: DictDataOutSchema = await DictDataService(auth, db).create(redis=redis, data=data)
-    return SuccessResponse(data=result_dict, msg="创建字典数据成功")
+@DictRouter.post("/cache/refresh", response_model=ResponseSchema[None])
+async def refresh(auth: Edit, db: DB, redis: Cache):
+    await DictService(auth, db).refresh(redis)
+    return SuccessResponse()
 
 
-@DictRouter.put("/data/update/{id}", summary="修改字典数据", response_model=ResponseSchema[DictDataOutSchema])
-async def update_data_controller(
-    redis: Annotated[Redis, Depends(redis_getter)],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:update"]))],
-    id: Annotated[int, Path(description="字典数据ID", ge=1)],
-    data: Annotated[DictDataUpdateSchema, Body(description="字典数据修改参数")],
-) -> JSONResponse:
-    result_dict: DictDataOutSchema = await DictDataService(auth, db).update(redis=redis, id=id, data=data)
-    return SuccessResponse(data=result_dict, msg="修改字典数据成功")
+@DictRouter.post("/export")
+async def export(auth: Export, db: DB, search: DictNodeQuery, tree: bool = False):
+    service = DictService(auth, db)
+    service.require("export", 0 if tree or search.parent_id is None else 1)
+    all_rows = await service.all_nodes(search.dict_type)
+    if tree:
+        roots = [
+            row
+            for row in all_rows
+            if row["parent_id"] is None
+            and (search.source is None or row["source"] == search.source)
+            and (search.status is None or row["status"] == search.status)
+            and (not search.dict_name or search.dict_name in row["dict_name"])
+            and (not search.dict_code or search.dict_code in row["dict_code"])
+        ]
+        codes = {row["dict_type"] for row in roots}
+        rows = [row for row in all_rows if row["dict_type"] in codes]
+    else:
+        page = await service.listing(search, 1, max(len(all_rows), 1), permission="export")
+        ids = {row.id for row in page.items}
+        # Keep ancestors while building paths, then select requested rows.
+        rows = all_rows
+    values = export_rows(rows)
+    if not tree:
+        values = [row for row in values if row[0] in {str(key) for key in ids}]
+    book = Workbook(write_only=True)
+    sheet = book.create_sheet("字典")
+    sheet.append(["节点ID", "父节点ID", "字典类型", "层级", "名称", "编码", "排序", "状态", "默认", "来源", "路径"])
+    for row in values:
+        # Escape spreadsheet formula injection in administrator-entered values.
+        sheet.append(["'" + value if isinstance(value, str) and value.startswith(("=", "+", "-", "@")) else value for value in row])
+    output = BytesIO()
+    book.save(output)
+    output.seek(0)
+    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": 'attachment; filename="dictionary.xlsx"'})
 
 
-@DictRouter.delete("/data/delete", summary="删除字典数据", response_model=ResponseSchema[None])
-async def delete_data_controller(
-    redis: Annotated[Redis, Depends(redis_getter)],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:delete"]))],
-    ids: Annotated[list[int], Body(description="ID列表")],
-) -> JSONResponse:
-    await DictDataService(auth, db).delete(redis=redis, ids=ids)
-    return SuccessResponse(msg="删除字典数据成功")
+# Existing business pages / generated pages retain the flat options contract.
+@DictRouter.get("/data/info/{dict_type}", response_model=ResponseSchema[list[dict]])
+async def flat_options(dict_type: str, db: DB, redis: Cache):
+    return SuccessResponse(data=await DictService(AuthSchema(), db).options(dict_type, redis))
 
 
-@DictRouter.patch("/data/status/batch", summary="批量修改字典数据状态", response_model=ResponseSchema[None])
-async def batch_set_available_dict_data_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:dict_data:patch"]))],
-    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
-    db: Annotated[AsyncSession, Depends(db_getter)],
-) -> JSONResponse:
-    await DictDataService(auth, db).set_available(data=data)
-    return SuccessResponse(msg="批量修改字典数据状态成功")
+@DictRouter.get("/type/optionselect", response_model=ResponseSchema[list[DictNodeOut]])
+async def type_options(auth: Read, db: DB):
+    rows = [dict(row, dict_type=row["dict_code"]) for row in await DictService(auth, db).all_nodes() if row["parent_id"] is None and row["status"] == 0]
+    return SuccessResponse(data=rows)
 
 
-@DictRouter.get("/data/info/{dict_type}", summary="根据字典类型获取数据", response_model=ResponseSchema[list[DictDataOutSchema]])
-async def get_init_dict_data_controller(
-    redis: Annotated[Redis, Depends(redis_getter)],
-    dict_type: Annotated[str, Path(description="字典类型")],
-) -> JSONResponse:
-    dict_data_query_result: list[dict[str, Any]] = await DictDataService.get_init_cache(redis=redis, dict_type=dict_type)
-    return SuccessResponse(data=dict_data_query_result, msg="获取初始化字典数据成功")
+@DictRouter.get("/type/list", response_model=ResponseSchema[PageResultSchema[DictNodeOut]])
+async def legacy_type_list(auth: Read, db: DB, page: Annotated[PaginationQueryParam, Depends()], dict_name: str | None = None, dict_type: str | None = None, status: int | None = None):
+    return SuccessResponse(data=await DictService(auth, db).listing(DictNodeQuery(dict_name=dict_name, dict_type=dict_type, status=status), page.page_no, page.page_size))

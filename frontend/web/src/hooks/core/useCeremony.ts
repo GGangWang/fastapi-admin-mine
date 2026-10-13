@@ -42,7 +42,7 @@
  * ```
  *
  * @module useCeremony
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 
 import { useTimeoutFn, useIntervalFn, useDateFormat } from "@vueuse/core";

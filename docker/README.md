@@ -1,4 +1,4 @@
-# FastapiAdmin 部署说明
+# ResNexus 部署说明
 
 > **与仓库根文档的关系**：项目总览、快速开始、演示账号等请以 [根目录 README.md](../README.md) 为准；**本文档**侧重 Docker 部署的详细操作。
 
@@ -50,8 +50,8 @@ docker/
    | 变量 | 必填 | 默认值 | 说明 |
    |------|------|--------|------|
    | `MYSQL_ROOT_PASSWORD` | 是 | - | MySQL root 密码 |
-   | `MYSQL_DATABASE` | 否 | `fastapiadmin` | 数据库名 |
-   | `MYSQL_USER` | 否 | `fastapiadmin` | 数据库用户 |
+   | `MYSQL_DATABASE` | 否 | `ResNexus` | 数据库名 |
+   | `MYSQL_USER` | 否 | `ResNexus` | 数据库用户 |
    | `MYSQL_PASSWORD` | 是 | - | 数据库密码 |
    | `REDIS_PASSWORD` | 是 | - | Redis 密码 |
    | `BACKEND_PORT` | 否 | `8001` | 后端服务宿主机端口 |
@@ -60,7 +60,7 @@ docker/
    | `DEPLOY_ENV` | 否 | `prod` | 部署环境（dev/prod） |
    | `BACKEND_IMAGE_TAG` | 否 | `3.0.0` | 后端镜像标签 |
    | `BUILD_WEB` | 否 | `false` | 部署时构建前端 Web |
-   | `NGINX_SERVER_NAME` | 否 | `service.fastapiadmin.com` | Nginx 域名 |
+   | `NGINX_SERVER_NAME` | 否 | `resnexus.example.com` | Nginx 域名 |
 
 2. **SSL 证书配置**（可选，但生产环境必须）
 
@@ -69,7 +69,7 @@ docker/
    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
      -keyout docker/nginx/ssl/server.key \
      -out docker/nginx/ssl/server.pem \
-     -subj "/CN=service.fastapiadmin.com"
+     -subj "/CN=resnexus.example.com"
 
    # 生产环境请使用正规 CA 签发的证书
    ```

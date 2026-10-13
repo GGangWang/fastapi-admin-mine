@@ -188,10 +188,10 @@
                   class="w-full"
                 >
                   <ElOption
-                    v-for="item in dictDataStore['sys_user_sex']"
-                    :key="String(item.dict_value)"
-                    :label="item.dict_label"
-                    :value="normalizeGenderValue(item.dict_value)"
+                    v-for="item in pageDict.options(DictTypeEnum.SYS_USER_SEX)"
+                    :key="String(item.value)"
+                    :label="item.label"
+                    :value="normalizeGenderValue(item.value)"
                   />
                 </ElSelect>
               </ElFormItem>
@@ -334,12 +334,16 @@
 </template>
 
 <script lang="ts" setup>
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_USER_SEX]);
+
 import type { FormInstance, UploadRequestOptions, UploadFile } from "element-plus";
 import type { ElUpload } from "element-plus";
 import UserAPI, { type InfoFormState, type PasswordFormState } from "@/api/module_system/user";
 import OnlineAPI from "@/api/module_monitor/online";
 import type { OnlineUserTable } from "@/api/module_monitor/online";
-import { useUserStore, useDictStore } from "@stores";
+import { useUserStore } from "@stores";
 import { Camera, Loading } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
@@ -350,7 +354,7 @@ defineOptions({ name: "FastlinkProfile" });
 
 const { t } = useI18n();
 const userStore = useUserStore();
-const dictStore = useDictStore();
+
 const infoFormRef = ref<FormInstance>();
 const passwordFormRef = ref<FormInstance>();
 
@@ -359,8 +363,6 @@ const passwordChanging = ref(false);
 
 const isEdit = ref(false);
 const isEditPwd = ref(false);
-
-const dictDataStore = computed(() => dictStore.dictData);
 
 const greeting = ref("");
 
@@ -520,7 +522,7 @@ const initInfoForm = () => {
 };
 
 const getOptions = async () => {
-  await dictStore.getDict(["sys_user_sex"]);
+  await pageDict.ready;
 };
 
 const rules = {

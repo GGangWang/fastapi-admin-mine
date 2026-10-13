@@ -383,6 +383,31 @@ def test_column_type_shape_whitelist() -> None:
             GenTableColumnOutSchema(**{**_column().model_dump(), "column_type": column_type})
 
 
+def test_reflected_column_type_strips_dialect_affixes() -> None:
+    """MySQL 反射出的列级 CHARACTER SET / COLLATE 应在反射边界被剥离，回归导入表 400。"""
+    from app.modules.generator.gencode.crud import _normalize_reflected_column_type
+    from app.modules.generator.gencode.schema import GenTableColumnOutSchema
+
+    cases = {
+        'VARCHAR(200) COLLATE "utf8mb4_general_ci"': "VARCHAR(200)",
+        'VARCHAR(200) CHARACTER SET utf8mb4 COLLATE "utf8mb4_general_ci"': "VARCHAR(200)",
+        "INTEGER UNSIGNED": "INTEGER UNSIGNED",
+        "tinyint(1)": "tinyint(1)",
+        "decimal(10,2)": "decimal(10,2)",
+        "timestamp without time zone": "timestamp without time zone",
+    }
+    for raw, expected in cases.items():
+        assert _normalize_reflected_column_type(raw) == expected
+
+    # 归一化后的结果必须能通过列类型白名单校验（即原 400 路径被修复）
+    for raw in (
+        'VARCHAR(200) COLLATE "utf8mb4_general_ci"',
+        'VARCHAR(200) CHARACTER SET utf8mb4 COLLATE "utf8mb4_general_ci"',
+    ):
+        cleaned = _normalize_reflected_column_type(raw)
+        assert GenTableColumnOutSchema(**{**_column().model_dump(), "column_type": cleaned}).column_type == cleaned
+
+
 # ── 5. 保留字：Python 关键字 / JS 保留字不能进标识符位置 ──────────────────────
 
 
@@ -407,6 +432,24 @@ def test_column_name_rejects_reserved_word_with_name_in_message() -> None:
     assert "class" in message and "关键字" in message
 
 
+def test_python_type_is_not_js_reserved_prefixed() -> None:
+    """python_type 只进 Python 注解语境：int/float/bool 不得被 JS 保留字前缀破坏。"""
+    from app.modules.generator.gencode.template_safety import safe_python_type
+
+    # 合法类型名必须原样保留（回归：曾被前缀成 _int/_float，产出 Mapped[_int] → NameError）
+    for t in ("str", "int", "float", "bool", "Decimal", "date", "time", "datetime", "dict", "list", "bytes", "timedelta"):
+        assert safe_python_type(t) == t, t
+
+    # 注入值仍被结构安全化：残留的非法字符被替换，结果仍是合法标识符
+    evil = safe_python_type("int] \nimport os")
+    assert evil.isidentifier()
+    for ch in ("[", "]", chr(39), chr(34), "\n", ";"):
+        assert ch not in evil
+
+    # 空值/非法起点回落默认类型
+    assert safe_python_type(None) == "str"
+    assert safe_python_type("") == "str"
+    assert safe_python_type("1int") == "str"
 # ── 6. 行/段分隔符与控制符转义 ────────────────────────────────────────────────
 
 
@@ -461,7 +504,7 @@ def test_html_strategies_roundtrip_backslash_and_quote() -> None:
 
 def test_python_structure_gate_blocks_injection() -> None:
     """仅 ast.parse 不足以发现注入：结构必须与哨兵骨架一致。"""
-    reference = 'import os\n\nx = 1\n\n\nclass A:\n    y: int = 1\n'
+    reference = "import os\n\nx = 1\n\n\nclass A:\n    y: int = 1\n"
     assert_python_structure(reference, reference, filename="ok.py")  # 自身结构一致
 
     injected_statement = reference + "import subprocess\n"
@@ -475,7 +518,7 @@ def test_python_structure_gate_blocks_injection() -> None:
 
     # 白名单之外的顶层语句直接拒绝
     with pytest.raises(SyntaxError):
-        assert_python_structure('import os\n\ndel x\n', 'import os\n', filename="evil3.py")
+        assert_python_structure("import os\n\ndel x\n", "import os\n", filename="evil3.py")
 
 
 def test_text_structure_gate_blocks_extra_lines_and_breakouts() -> None:
@@ -544,3 +587,16 @@ async def test_all_templates_pass_structural_gate_with_hostile_text() -> None:
         assert_python_structure(real, ref, filename=name)
         checked += 1
     assert checked == 13  # 10 主模板 + 3 子表模板
+
+async def test_vue_dictionary_batch_and_translation_contract():
+    table = _table(columns=[_column(column_name='id', is_pk=True, python_type='int'), _column(column_name='gender', dict_type='sys_user_sex', html_type='select', is_query=True)])
+    rendered = await _render_all(table)
+    vue = rendered['frontend/web/src/views/module_gen/demo/index.vue']
+    assert 'useDict([DictTypeEnum.SYS_TRUE_FALSE, DictTypeEnum.SYS_ENABLE_STATUS' in vue
+    assert 'resolveDictType("sys_user_sex")' in vue
+    assert 'pageDict.options(' in vue
+    assert 'pageDict.label(' in vue
+    assert '<FaDictTag' in vue
+    assert 'dictStore.getDictArray' not in vue
+    assert 'text: "启用"' not in vue
+    assert 'label: "停用", value: 1' not in vue

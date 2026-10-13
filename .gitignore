@@ -81,4 +81,5 @@ AGENTS.md
 # 种子数据用 backend/sql/*.json；导出文件请勿入库（CI 的 secrets 工作流同时拦真实凭据）。
 backend/*.sql
 backend/sql/**/*.sql
+!backend/sql/upgrade_resource_branding.sql
 *.dump

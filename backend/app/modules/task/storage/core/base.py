@@ -6,17 +6,19 @@
 _sync_close（释放连接资源，无持久连接则省略，close 为空操作）。
 适配器实例按请求创建（无连接池复用），用完由调用方关闭。
 """
+
 import asyncio
 import os
 import types
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from enum import Enum
 from typing import Any, Literal, get_args, get_origin
 
 from pydantic import BaseModel, Field
 
+# Compatibility re-export: existing adapters keep their import path.
+from app.common.dict_values import StorageProtocol
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.utils.crypto_util import CryptoUtil
@@ -38,19 +40,6 @@ class AdvancedFieldDefSchema(BaseModel):
     default: Any | None = Field(default=None, description="默认值")
     type: Literal["boolean", "number", "text", "select"] = Field("text", description="组件类型")
     options: list[str] | None = Field(default=None, description="下拉选项")
-
-
-class StorageProtocol(str, Enum):
-    """存储协议枚举"""
-
-    FTP = "ftp"
-    FTPS = "ftps"
-    SFTP = "sftp"
-    S3 = "s3"
-    OBS = "obs"
-    OSS = "oss"
-    COS = "cos"
-    LOCAL = "local"
 
 
 # 各协议默认端口
@@ -86,12 +75,8 @@ def decrypt_password(cipher: str | None) -> str:
 
 # 文件系统类协议与对象存储类协议的划分：仅用于文档说明与配置元数据，
 # 浏览/操作统一以"存储真根"为基准，path_prefix 不参与任何 key 计算。
-_FILE_SYSTEM_PROTOCOLS: frozenset[StorageProtocol] = frozenset(
-    {StorageProtocol.FTP, StorageProtocol.FTPS, StorageProtocol.SFTP, StorageProtocol.LOCAL}
-)
-_OBJECT_STORE_PROTOCOLS: frozenset[StorageProtocol] = frozenset(
-    {StorageProtocol.S3, StorageProtocol.OSS, StorageProtocol.COS, StorageProtocol.OBS}
-)
+_FILE_SYSTEM_PROTOCOLS: frozenset[StorageProtocol] = frozenset({StorageProtocol.FTP, StorageProtocol.FTPS, StorageProtocol.SFTP, StorageProtocol.LOCAL})
+_OBJECT_STORE_PROTOCOLS: frozenset[StorageProtocol] = frozenset({StorageProtocol.S3, StorageProtocol.OSS, StorageProtocol.COS, StorageProtocol.OBS})
 
 
 # 流式传输阈值：SDK 高层上传超过该大小才触发分片（100GB，等效单次上传）
@@ -395,9 +380,7 @@ class BaseStorageAdapter(ABC):
     async def exists(self, remote_path: str) -> bool:
         return await asyncio.to_thread(self._sync_exists, remote_path)
 
-    async def list_files(
-        self, prefix: str = "", page_size: int | None = None, cursor: str | None = None
-    ) -> list[StorageObject] | StoragePage:
+    async def list_files(self, prefix: str = "", page_size: int | None = None, cursor: str | None = None) -> list[StorageObject] | StoragePage:
         """列出目录条目。
 
         - 不传 page_size：全量拉取（目录选择器/搜索等场景）。
@@ -665,6 +648,4 @@ def _field_defs(model_cls: type[BaseModel], protocol_key: str) -> list[AdvancedF
     return defs
 
 
-ADVANCED_FIELD_DEFS: dict[str, list[AdvancedFieldDefSchema]] = {
-    protocol.value: _field_defs(model_cls, protocol.value) for protocol, model_cls in ADVANCED_CONFIG_MODELS.items()
-}
+ADVANCED_FIELD_DEFS: dict[str, list[AdvancedFieldDefSchema]] = {protocol.value: _field_defs(model_cls, protocol.value) for protocol, model_cls in ADVANCED_CONFIG_MODELS.items()}

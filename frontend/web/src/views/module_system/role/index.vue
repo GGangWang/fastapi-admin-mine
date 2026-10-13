@@ -73,15 +73,9 @@
           :items="roleDetailItems"
           max-height="70vh"
         >
-          <template #data_scope="{ row }">
-            <FaStatusTag v-if="row?.data_scope === 1" type="primary" label="仅本人数据权限" />
-            <FaStatusTag
-              v-else-if="row?.data_scope === 2"
-              type="warning"
-              label="本部门及以下数据权限"
-            />
-            <FaStatusTag v-else type="success" label="全部数据权限" />
-          </template>
+          <template #data_scope="{ row }"
+            ><FaDictTag :type="DictTypeEnum.SYS_DATA_SCOPE" :value="row?.data_scope"
+          /></template>
           <template #depts="{ row }">
             <template
               v-if="
@@ -143,6 +137,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS, DictTypeEnum.SYS_DATA_SCOPE]);
+
 import { h } from "vue";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { confirmToggleStatus } from "@/hooks/core/useConfirm";
@@ -314,10 +312,7 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
 const roleSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -387,7 +382,7 @@ const roleDetailItems: import("@/components/display/fa-descriptions/index.vue").
       label: "状态",
       prop: "status",
       tag: {
-        map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
     },
     { label: "创建时间", prop: "created_time" },
@@ -510,10 +505,7 @@ const roleDialogFormItems = computed<FormItem[]>(() => [
     type: "radiogroup",
     span: 24,
     props: {
-      options: [
-        { label: "启用", value: 0 },
-        { label: "停用", value: 1 },
-      ],
+      options: pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"),
     },
   },
   {
@@ -563,11 +555,7 @@ const {
         prop: "data_scope",
         label: "数据权限",
         minWidth: 160,
-        status: {
-          1: { type: "primary", text: "仅本人数据权限" },
-          2: { type: "warning", text: "本部门及以下数据权限" },
-          3: { type: "success", text: "全部数据权限" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_DATA_SCOPE),
       },
       {
         prop: "depts",
@@ -580,10 +568,7 @@ const {
         prop: "status",
         label: "状态",
         width: 80,
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
       { prop: "description", label: "描述", minWidth: 120, showOverflowTooltip: true },
       {

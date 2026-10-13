@@ -1,6 +1,6 @@
 {
-  "name": "fastapiadmin",
-  "description": "Vue3 + Vite + TypeScript + Element-Plus 的后台管理模板",
+  "name": "resnexus-web",
+  "description": "ResNexus",
   "version": "3.0.0",
   "private": true,
   "type": "module",
@@ -15,6 +15,8 @@
     "serve:prod": "pnpm vite preview --mode production",
     "serve:dev": "pnpm vite preview --mode development",
     "clean": "pnpx rimraf node_modules",
+    "dict:generate": "python ../../scripts/generate_dict_types.py",
+    "dict:check": "python ../../scripts/generate_dict_types.py --check",
     "ts:check": "pnpm vue-tsc --noEmit --skipLibCheck",
     "npm:check": "pnpx npm-check-updates -u",
     "clean:cache": "pnpx rimraf node_modules/.cache node_modules/.vite",
@@ -188,16 +190,7 @@
     "npm": ">=10.0.0",
     "pnpm": ">=8.8.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://gitee.com/fastapiadmin/FastapiAdmin.git"
-  },
-  "bugs": {
-    "url": "https://gitee.com/fastapiadmin/FastapiAdmin/issues"
-  },
-  "author": "fastapiadmin <948080782@qq.com>",
   "license": "MIT",
-  "homepage": "https://gitee.com/fastapiadmin/FastapiAdmin",
   "browserslist": [
     "Chrome >= 84",
     "Firefox >= 83",

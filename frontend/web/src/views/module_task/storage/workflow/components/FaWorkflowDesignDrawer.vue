@@ -221,6 +221,13 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([
+  DictTypeEnum.STORAGE_PROTOCOL_SHORT,
+  DictTypeEnum.STORAGE_TRANSPORT_MODE,
+]);
+
 import type { Component } from "vue";
 import { ElMessage } from "element-plus";
 import { MarkerType, Panel, Position, SelectionMode, VueFlow, useVueFlow } from "@vue-flow/core";
@@ -341,7 +348,7 @@ function edgeDisplayLabel(data?: Record<string, any>): string {
   const modeText =
     data.transfer_mode === "multipart"
       ? `分片 ${data.multipart_part_size ?? 50}MB · ${data.multipart_concurrency ?? 6}线程`
-      : "流式传输";
+      : pageDict.label(DictTypeEnum.STORAGE_TRANSPORT_MODE, "stream");
   return data.enabled === false ? `已禁用 · ${modeText}` : modeText;
 }
 

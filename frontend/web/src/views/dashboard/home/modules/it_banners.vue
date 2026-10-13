@@ -39,7 +39,7 @@
       <FaCardBanner
         :image="icon4"
         title="版本更新提醒"
-        description="FastapiAdmin v3.1.0 已发布，包含优化和新功能。"
+        description="ResNexus v3.1.0 已发布，包含优化和新功能。"
         :button="{
           show: true,
           text: '立即更新',

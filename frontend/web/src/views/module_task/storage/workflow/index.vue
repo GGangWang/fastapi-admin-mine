@@ -171,6 +171,15 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([
+  DictTypeEnum.STORAGE_PROTOCOL_SHORT,
+  DictTypeEnum.STORAGE_TRANSPORT_MODE,
+  DictTypeEnum.SYS_ENABLE_STATUS,
+  DictTypeEnum.STORAGE_WORKFLOW_MODE,
+]);
+
 import { ElButton, ElTag, ElTooltip } from "element-plus";
 import { useRouter } from "vue-router";
 import { resolveStatusColumns, renderTableOperationCell, type TableOperationAction } from "@utils";
@@ -189,15 +198,9 @@ defineOptions({
   inheritAttrs: false,
 });
 
-const TASK_TYPE_OPTIONS = [
-  { label: "多目标（并行）", value: "parallel" },
-  { label: "链式（逐跳）", value: "chain" },
-] as const;
+const TASK_TYPE_OPTIONS = pageDict.options(DictTypeEnum.STORAGE_WORKFLOW_MODE, "string");
 
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
 function taskTypeLabel(value?: string): string {
   const opt = TASK_TYPE_OPTIONS.find((o) => o.value === value);
@@ -539,7 +542,7 @@ const flowDetailItems: import("@/components/display/fa-descriptions/index.vue").
     {
       label: "状态",
       prop: "status",
-      tag: { map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } } },
+      tag: { map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS) },
     },
     { label: "备注", prop: "description" },
     { label: "创建时间", prop: "created_time" },
@@ -733,10 +736,7 @@ const {
         prop: "status",
         label: "状态",
         width: 80,
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
       { prop: "description", label: "备注", minWidth: 120, showOverflowTooltip: true },
       {

@@ -20,7 +20,7 @@ function printBanner(env: Record<string, string>, mode: string) {
       "",
       `  ${dim("┌")}${line}${dim("┐")}`,
       row(""),
-      row(`${bold(cyan("fastapiadmin"))}  ${bold(magenta(`v${env.VITE_VERSION || "3.0.0"}`))}`),
+      row(`${bold(cyan("ResNexus"))}  ${bold(magenta(`v${env.VITE_VERSION || "3.0.0"}`))}`),
       row(""),
       ...BANNER_LINES.map((l) => row(green(l))),
       row(""),

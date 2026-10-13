@@ -1,6 +1,6 @@
-# FastAPI Admin · 前端工程（web）
+# ResNexus · 前端工程（web）
 
-基于 **Vue 3 + Vite + TypeScript + Element Plus** 的后台管理前端，与 FastAPI Admin 后端配套使用。状态管理为 **Pinia**，样式以 **Tailwind CSS 4** 与 **SCSS** 为主，接口请求使用 **Axios**。
+基于 **Vue 3 + Vite + TypeScript + Element Plus** 的后台管理前端，与 ResNexus 后端配套使用。状态管理为 **Pinia**，样式以 **Tailwind CSS 4** 与 **SCSS** 为主，接口请求使用 **Axios**。
 
 > **与仓库根文档的关系**：项目总览、一键前后端启动、演示账号、Docker 部署等请以 [根目录 README.md](../../README.md) 为准；**本文档**侧重 `frontend/web/` 目录结构、环境变量与前端开发约定。
 
@@ -27,7 +27,7 @@ pnpm dev
 
 ### 与后端联调
 
-1. 先启动 **FastAPI Admin 后端**，监听地址与 **`.env.dev`** 里 **`VITE_API_BASE_URL`** 一致（模板默认为 **`http://127.0.0.1:8001`**）。
+1. 先启动 **ResNexus 后端**，监听地址与 **`.env.dev`** 里 **`VITE_API_BASE_URL`** 一致（模板默认为 **`http://127.0.0.1:8001`**）。
 2. 前端开发时，浏览器请求发往当前页面同源路径，由 **Vite `server.proxy`** 把 **`VITE_APP_BASE_API`**（如 `/api/v1`）转发到上述后端。
 3. 若页面提示「连接被拒绝」，检查后端是否启动、端口是否一致，或把 **`VITE_API_BASE_URL`** 改成你的实际后端地址。
 

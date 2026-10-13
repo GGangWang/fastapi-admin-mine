@@ -126,11 +126,20 @@
   "setting": {
     "menuType": {
       "title": "菜单布局",
-      "list": ["垂直", "水平", "混合", "双列"]
+      "list": [
+        "垂直",
+        "水平",
+        "混合",
+        "双列"
+      ]
     },
     "theme": {
       "title": "主题风格",
-      "list": ["浅色", "深色", "系统"]
+      "list": [
+        "浅色",
+        "深色",
+        "系统"
+      ]
     },
     "menu": {
       "title": "菜单风格"
@@ -140,11 +149,17 @@
     },
     "box": {
       "title": "盒子样式",
-      "list": ["边框", "阴影"]
+      "list": [
+        "边框",
+        "阴影"
+      ]
     },
     "container": {
       "title": "容器宽度",
-      "list": ["铺满", "定宽"]
+      "list": [
+        "铺满",
+        "定宽"
+      ]
     },
     "basics": {
       "title": "基础配置",
@@ -198,11 +213,20 @@
   "settings": {
     "menuType": {
       "title": "菜单布局",
-      "list": ["垂直", "水平", "混合", "双列"]
+      "list": [
+        "垂直",
+        "水平",
+        "混合",
+        "双列"
+      ]
     },
     "theme": {
       "title": "主题风格",
-      "list": ["浅色", "深色", "系统"]
+      "list": [
+        "浅色",
+        "深色",
+        "系统"
+      ]
     },
     "menu": {
       "title": "菜单风格"
@@ -212,11 +236,17 @@
     },
     "box": {
       "title": "盒子样式",
-      "list": ["边框", "阴影"]
+      "list": [
+        "边框",
+        "阴影"
+      ]
     },
     "container": {
       "title": "容器宽度",
-      "list": ["铺满", "定宽"]
+      "list": [
+        "铺满",
+        "定宽"
+      ]
     },
     "basics": {
       "title": "基础配置",
@@ -309,9 +339,15 @@
   "notice": {
     "title": "通知",
     "btnRead": "标为已读",
-    "bar": ["通知", "消息", "待办"],
+    "bar": [
+      "通知",
+      "消息",
+      "待办"
+    ],
     "empty": "暂无通知",
-    "text": ["暂无"],
+    "text": [
+      "暂无"
+    ],
     "viewAll": "查看全部"
   },
   "worktab": {
@@ -693,5 +729,42 @@
     "pageError": "抱歉，您访问的页面不存在。",
     "networkError": "抱歉，服务器报告错误。",
     "returnToHome": "返回首页"
+  },
+  "dictionary": {
+    "title": "字典管理",
+    "add": "新增",
+    "back": "返回上级",
+    "reload": "刷新",
+    "export": "导出当前层",
+    "exportTree": "导出树形字典",
+    "refreshCache": "刷新字典缓存",
+    "enumReadonly": "枚举字典由代码定义，仅支持查看与导出",
+    "name": "字典名称",
+    "code": "字典编码",
+    "level": "层级",
+    "sort": "排序",
+    "source": "来源",
+    "status": "状态",
+    "default": "默认项",
+    "description": "备注",
+    "actions": "操作",
+    "database": "数据库",
+    "enum": "枚举",
+    "enabled": "启用",
+    "disabled": "停用",
+    "yes": "是",
+    "no": "否",
+    "children": "编辑下级",
+    "detail": "查看",
+    "edit": "编辑",
+    "delete": "删除",
+    "preview": "树预览",
+    "choosePath": "级联选择（按需加载）",
+    "cssClass": "样式属性",
+    "listClass": "标签样式",
+    "required": "请填写必填项",
+    "saved": "操作成功",
+    "confirmDelete": "确认删除字典“{name}”？有下级的节点不能删除。",
+    "parent": "上级节点"
   }
 }

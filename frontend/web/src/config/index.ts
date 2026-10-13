@@ -26,7 +26,7 @@
  * - headerBar: 顶部栏功能配置
  *
  * @module config
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 
 import { configImages } from "./assets/images";
@@ -38,7 +38,7 @@ import type { SystemConfig } from "@/types/config";
 const appConfig: SystemConfig = {
   // 系统信息
   systemInfo: {
-    name: "FastapiAdmin", // 系统名称
+    name: "ResNexus", // 系统名称
   },
   // 系统主题
   systemThemeStyles: {

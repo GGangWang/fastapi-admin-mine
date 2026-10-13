@@ -132,6 +132,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.GEN_CODE_STATUS]);
+
 defineOptions({
   name: "GenCode",
   inheritAttrs: false,
@@ -787,10 +791,7 @@ const gencodeSearchItems = computed<SearchFormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择状态",
-      options: [
-        { label: "未生成", value: 0 },
-        { label: "已生成", value: 1 },
-      ],
+      options: pageDict.options(DictTypeEnum.GEN_CODE_STATUS, "number"),
       clearable: true,
     },
     span: 6,

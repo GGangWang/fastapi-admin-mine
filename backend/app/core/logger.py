@@ -56,7 +56,7 @@ def setup_logger() -> None:
     _is_prod = settings.ENVIRONMENT == EnvironmentEnum.PROD
     logger.add(sys.stdout, format=LOG_FMT, backtrace=not _is_prod, diagnose=not _is_prod, catch=True, level=settings.LOGGER_LEVEL)
     logger.add(
-        sink=str(LOG_DIR / "fastapiadmin.log"),
+        sink=str(LOG_DIR / "resnexus.log"),
         format=LOG_FMT,
         level=settings.LOGGER_LEVEL,
         backtrace=not _is_prod,

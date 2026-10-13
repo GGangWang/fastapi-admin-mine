@@ -82,6 +82,13 @@ class SuccessResponse(JSONResponse):
         self.headers["Content-Type"] = "application/json; charset=utf-8"
 
 
+class CreatedResponse(SuccessResponse):
+    """统一创建成功响应，HTTP 状态与响应信封均为 201。"""
+
+    def __init__(self, data: Any | None = None, msg: str = RET.OK.msg) -> None:
+        super().__init__(data, msg, RET.OK.code, status.HTTP_201_CREATED)
+
+
 class ErrorResponse(JSONResponse):
     """错误响应类"""
 

@@ -18,14 +18,20 @@ from app.core.redis_crud import RedisCURD
 from app.core.security import OAuth2Schema, decode_access_token
 
 
-async def db_getter() -> AsyncGenerator[AsyncSession, None]:
+async def db_getter(request: Request) -> AsyncGenerator[AsyncSession, None]:
     """数据库会话 — 请求级生命周期管理。
 
     一个 HTTP 请求内所有 SQL 共享同一个事务：要么全成功，要么全失败。
     读操作也走这个事务（牺牲一点 MVCC 隔离换取读已写一致性）。
     """
-    async with async_db_session() as session, session.begin():
-        yield session
+    async with async_db_session() as session:
+        request.state.database_session = session
+        async with session.begin():
+            yield session
+        # Run only after a successful commit. Rollbacks never publish cache
+        # generations for writes that were not persisted.
+        for callback in session.info.pop("after_commit_callbacks", {}).values():
+            await callback()
 
 
 async def redis_getter(request: Request) -> Redis:

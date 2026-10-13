@@ -1,6 +1,6 @@
-# FastapiAdmin 部署运维手册
+# ResNexus 部署运维手册
 
-> 适用环境：阿里云单机 Docker 部署（`service.fastapiadmin.com`）
+> 适用环境：阿里云单机 Docker 部署（`resnexus.example.com`）
 > 最近更新：2026-10-04（本轮密钥轮换与加固之后）
 
 ---
@@ -14,7 +14,7 @@
 | mysql | MySQL 8.0，数据卷 `mysql_data` | 仅 127.0.0.1:3306 |
 | redis | Redis 7（会话/缓存/限流） | 仅 127.0.0.1:6379 |
 
-服务器布局（`/home/FastapiAdmin`）：
+服务器布局（`/home/ResNexus`）：
 
 ```
 docker/                     # 唯一部署目录，不含业务源码
@@ -91,7 +91,7 @@ backups/                    # 部署前自动备份（每类保留 5 份）
 常用排查命令：
 
 ```bash
-cd /home/FastapiAdmin/docker
+cd /home/ResNexus/docker
 docker compose ps
 docker logs --tail 100 backend
 docker inspect backend --format '{{.State.Health.Status}}'
@@ -102,7 +102,7 @@ ss -tlnp | grep docker-proxy      # 确认对外只有 80/443
 
 ## 5. 证书
 
-- 当前证书：`docker/nginx/ssl/server.pem`（`CN=service.fastapiadmin.com`），由巡检脚本监控到期天数
+- 当前证书：`docker/nginx/ssl/server.pem`（`CN=resnexus.example.com`），由巡检脚本监控到期天数
 - 续期（重新签发后）：替换 `server.pem` 与 `server.key` → `docker exec nginx nginx -s reload`
 - 已放行 ACME http-01 校验路径（`/.well-known/acme-challenge/` → `docker/nginx/acme`），如需切换到 acme.sh 自动续期，把校验文件写入该目录即可，无需再改 nginx 配置
 
@@ -115,7 +115,7 @@ ss -tlnp | grep docker-proxy      # 确认对外只有 80/443
 | 类型 | 写法 | 例子 |
 | --- | --- | --- |
 | `str`（应用内部再按逗号拆） | 逗号分隔字符串 | `PROD_CORS_ORIGINS=https://a.com,https://b.com` |
-| `list[str]`（pydantic-settings 直接解析） | **必须 JSON 数组字面量** | `OAUTH_ALLOWED_HOSTS=["service.fastapiadmin.com","*.fastapiadmin.com"]` |
+| `list[str]`（pydantic-settings 直接解析） | **必须 JSON 数组字面量** | `OAUTH_ALLOWED_HOSTS=["resnexus.example.com","*.resnexus.example.com"]` |
 
 把 `list[str]` 字段写成逗号分隔字符串会让应用**启动期抛 `SettingsError`**，容器不断重启、网关返回 502。2026-10-04 的部署事故就是这个原因（已修复并在 compose 默认值里固化 JSON 形态）。
 
@@ -133,13 +133,13 @@ ss -tlnp | grep docker-proxy      # 确认对外只有 80/443
 标准步骤（约 1 分钟中断窗口，顺序不可颠倒）：
 
 ```bash
-cd /home/FastapiAdmin/docker
+cd /home/ResNexus/docker
 cp -a .env ".env.bak-rotate-$(date +%Y%m%d-%H%M%S)"   # 先备份，便于回滚
 
 # 1) 改数据库口令（用 stdin 传 SQL，避免口令出现在命令行历史/ps）
 NEW=$(openssl rand -base64 36 | tr -d '/+=' | cut -c1-30)
 docker exec -i -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql mysql -uroot <<SQL
-ALTER USER 'fastapiadmin'@'%' IDENTIFIED BY '$NEW';
+ALTER USER 'ResNexus'@'%' IDENTIFIED BY '$NEW';
 FLUSH PRIVILEGES;
 SQL
 

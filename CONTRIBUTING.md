@@ -4,17 +4,17 @@
 
 ## 快速链接
 
-- 📖 **项目文档**: [service.fastapiadmin.com](https://service.fastapiadmin.com/)
-- 🐛 **反馈 Bug**: [GitHub Issues](https://github.com/fastapiadmin/FastapiAdmin/issues) | [Gitee Issues](https://gitee.com/fastapiadmin/FastapiAdmin/issues)
+- 📖 **项目文档**: [resnexus.example.com](https://resnexus.example.com/)
+- 🐛 **反馈 Bug**: [GitHub Issues](https://github.com/resnexus/ResNexus/issues) | [Gitee Issues](https://gitee.com/resnexus/ResNexus/issues)
 - 💡 **功能建议**: 先提 Issue 讨论，再动手写代码
-- 📝 **开发规范**: [代码风格指南](https://service.fastapiadmin.com/guide/guidelines)
+- 📝 **开发规范**: [代码风格指南](https://resnexus.example.com/guide/guidelines)
 - 💬 **社区交流**: 扫码加入微信群（二维码见 [README](./README.md)）
 
 ## 开始之前
 
-1. 先搜索现有 [Issues](https://github.com/fastapiadmin/FastapiAdmin/issues)，避免重复提交
+1. 先搜索现有 [Issues](https://github.com/resnexus/ResNexus/issues)，避免重复提交
 2. 较大改动建议先开 Issue 讨论方案
-3. 遵循 [提交信息规范](https://service.fastapiadmin.com/guide/guidelines)
+3. 遵循 [提交信息规范](https://resnexus.example.com/guide/guidelines)
 
 ## 本地开发环境
 

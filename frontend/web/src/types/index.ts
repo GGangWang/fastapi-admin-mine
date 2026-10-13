@@ -3,7 +3,7 @@
  * 提供全局类型定义的统一导出入口
  *
  * @module types/index
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 
 /** AI 相关类型定义 */

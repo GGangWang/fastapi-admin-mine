@@ -25,7 +25,7 @@
  * - 支持强制刷新配置
  *
  * @module store/modules/config.store
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 import { store } from "@stores";
 import ParamsAPI, { ConfigTable } from "@/api/module_system/params";

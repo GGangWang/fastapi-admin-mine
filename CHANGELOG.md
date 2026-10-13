@@ -1,6 +1,6 @@
 # 更新日志
 
-记录 FastapiAdmin 的显著变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
+记录 ResNexus 的显著变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
 ## [Unreleased]
 

@@ -106,11 +106,9 @@
             <ElAvatar v-else icon="UserFilled" size="small" />
           </template>
           <!-- 性别 → 三种状态 Tag -->
-          <template #gender="{ row }">
-            <FaStatusTag v-if="row?.gender === '0'" type="success" label="男" />
-            <FaStatusTag v-else-if="row?.gender === '1'" type="warning" label="女" />
-            <FaStatusTag v-else type="info" label="未知" />
-          </template>
+          <template #gender="{ row }"
+            ><FaDictTag :type="DictTypeEnum.SYS_USER_SEX" :value="row?.gender"
+          /></template>
           <!-- 角色 → 根据 IDs 从选项解析名称 -->
           <template #roles="{ row }">
             {{ resolveLabels((row as UserInfo).role_ids, roleOptions) }}
@@ -193,6 +191,14 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([
+  DictTypeEnum.SYS_TRUE_FALSE,
+  DictTypeEnum.SYS_ENABLE_STATUS,
+  DictTypeEnum.SYS_USER_SEX,
+]);
+
 defineOptions({
   name: "User",
   inheritAttrs: false,
@@ -385,14 +391,14 @@ const userDetailItems: DescriptionsItem[] = [
     label: "是否超管",
     prop: "is_superuser",
     tag: {
-      map: { true: { type: "success", text: "是" }, false: { type: "info", text: "否" } },
+      map: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
     },
   },
   {
     label: "状态",
     prop: "status",
     tag: {
-      map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } },
+      map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
     },
   },
   { label: "上次登录时间", prop: "last_login" },
@@ -418,11 +424,7 @@ const userDialogFormItems = computed<FormItem[]>(() => [
     type: "select",
     props: {
       placeholder: "请选择性别",
-      options: [
-        { label: "男", value: "0" },
-        { label: "女", value: "1" },
-        { label: "未知", value: "2" },
-      ],
+      options: pageDict.options(DictTypeEnum.SYS_USER_SEX, "string"),
     },
   },
   {
@@ -453,10 +455,7 @@ const userDialogFormItems = computed<FormItem[]>(() => [
     label: "状态",
     type: "radiogroup",
     props: {
-      options: [
-        { label: "启用", value: 0 },
-        { label: "停用", value: 1 },
-      ],
+      options: pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"),
     },
   },
   {
@@ -487,10 +486,7 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
 const userSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -619,10 +615,7 @@ const {
         prop: "status",
         label: "状态",
         width: 88,
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
       {
         prop: "dept",
@@ -634,10 +627,7 @@ const {
         prop: "gender",
         label: "性别",
         width: 88,
-        status: {
-          "0": { type: "success", text: "男" },
-          "1": { type: "warning", text: "女" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_USER_SEX),
       },
       {
         prop: "created_time",

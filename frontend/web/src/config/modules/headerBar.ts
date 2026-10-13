@@ -5,7 +5,7 @@
  * 通过修改此配置文件可以快速启用或禁用顶部栏的功能按钮。
  *
  * @module config/headerBar
- * @author FastapiAdmin Team
+ * @author Original upstream authors (see LICENSE)
  */
 
 import type { HeaderBarFeatureConfig } from "@/types/config";

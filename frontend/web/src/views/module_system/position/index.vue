@@ -108,6 +108,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS]);
+
 import PositionAPI, {
   type PositionForm,
   type PositionPageQuery,
@@ -220,10 +224,7 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
 const positionSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -291,10 +292,7 @@ const {
         prop: "status",
         label: "状态",
         width: 88,
-        status: {
-          0: { type: "success", text: "启用" },
-          1: { type: "danger", text: "停用" },
-        },
+        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
       { prop: "order", label: "岗位排序", width: 100, showOverflowTooltip: true },
       { prop: "description", label: "描述", minWidth: 120, showOverflowTooltip: true },
@@ -368,7 +366,7 @@ const positionDetailItems: import("@/components/display/fa-descriptions/index.vu
       label: "状态",
       prop: "status",
       tag: {
-        map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
     },
     { label: "创建人", prop: "created_by.name" },
@@ -469,10 +467,7 @@ const positionDialogFormItems = computed<FormItem[]>(() => [
     type: "radiogroup",
     span: 24,
     props: {
-      options: [
-        { label: "启用", value: 0 },
-        { label: "停用", value: 1 },
-      ],
+      options: pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"),
     },
   },
   {

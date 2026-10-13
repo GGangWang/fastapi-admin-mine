@@ -34,10 +34,12 @@
               <ElForm ref="dataFormRef" :model="permissionState">
                 <ElFormItem prop="data_scope">
                   <ElSelect v-model="permissionState.data_scope">
-                    <ElOption :key="1" label="仅本人数据权限" :value="1" />
-                    <ElOption :key="2" label="本部门及以下数据权限" :value="2" />
-                    <ElOption :key="3" label="全部数据权限" :value="3" />
-                  </ElSelect>
+                    <ElOption
+                      v-for="option in pageDict.options(DictTypeEnum.SYS_DATA_SCOPE, 'number')"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value"
+                  /></ElSelect>
                 </ElFormItem>
               </ElForm>
             </div>
@@ -82,6 +84,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_DATA_SCOPE]);
+
 import { QuestionFilled } from "@element-plus/icons-vue";
 import RoleAPI, { permissionDataType } from "@/api/module_system/role";
 import MenuAPI, { MenuTable } from "@/api/module_system/menu";

@@ -12,7 +12,8 @@ from app.core.base_model import MappedBase
 from app.core.database import async_db_session, async_engine, create_tables
 from app.core.logger import logger
 from app.modules.system.dept.model import DeptModel
-from app.modules.system.dict.model import DictDataModel, DictTypeModel
+from app.modules.system.dict.model import DictInfoModel
+from app.modules.system.dict.registry import reservation
 from app.modules.system.menu.model import MenuModel
 from app.modules.system.params.model import ParamsModel
 from app.modules.system.role.model import RoleModel
@@ -35,8 +36,7 @@ class InitializeData:
         DeptModel,
         ParamsModel,
         RoleModel,
-        DictTypeModel,
-        DictDataModel,
+        DictInfoModel,
         UserModel,
         UserRolesModel,
         VersionModel,
@@ -180,8 +180,8 @@ class InitializeData:
             try:
                 if table_name in self._RECURSIVE_TABLES:
                     objs = self.__create_objects_with_children(data, model)
-                elif table_name == "sys_dict_data":
-                    objs = await self.__create_dict_data_objs(db, data)
+                elif table_name == "sys_dict_info":
+                    objs = await self.__create_dict_info_objs(db, data)
                 else:
                     objs = [model(**item) for item in data]
 
@@ -200,30 +200,25 @@ class InitializeData:
             logger.info(f"⏭️  {len(skipped)} 张表已有数据，跳过初始化：{', '.join(skipped)}")
 
     @staticmethod
-    async def __create_dict_data_objs(db: AsyncSession, data: list[dict]) -> list[DictDataModel]:
-        """字典数据种子：dict_type_id 通过查询库内字典类型解析。"""
-        type_names = {item.get("dict_type") for item in data if item.get("dict_type")}
-        result = await db.execute(
-            select(DictTypeModel.dict_type, DictTypeModel.id).where(
-                DictTypeModel.dict_type.in_(type_names)
-            )
-        )
-        # Row[Tuple[str, int]] 静态类型上不是双元素 (key, value) 元组，dict(rows) 会被类型检查器拒绝；
-        # 用下标显式拆出 (dict_type, id) 再构造，运行行为不变且类型清晰
-        id_map: dict[str, int] = {row[0]: row[1] for row in result.all()}
-
-        objs: list[DictDataModel] = []
-        for item in data:
-            dict_type = item.get("dict_type")
-            if not isinstance(dict_type, str):  # 与 type_names 的 truthy 过滤一致，同时收窄类型
-                continue
-            dict_type_id = id_map.get(dict_type)
-            if dict_type_id is None:
-                logger.warning(f"⚠️  未找到字典类型 {dict_type}，跳过")
-                continue
-            item["dict_type_id"] = dict_type_id
-            objs.append(DictDataModel(**item))
-        return objs
+    async def __create_dict_info_objs(db: AsyncSession, data: list[dict]) -> list[DictInfoModel]:
+        """Insert parents before children without recursive relationship loading."""
+        from collections import deque
+        queue = deque((item, None, None, 0) for item in data)
+        result = []
+        while queue:
+            item, parent_id, dict_type, level = queue.popleft()
+            values = dict(item)
+            children = values.pop("children", [])
+            values.update(parent_id=parent_id, dict_level=level, dict_type=dict_type or values["dict_code"],
+                          active_key=reservation(parent_id, values["dict_code"]))
+            if values.get("is_default"):
+                values["default_key"] = reservation(parent_id, "__default__")
+            obj = DictInfoModel(**values)
+            db.add(obj)
+            await db.flush()
+            result.append(obj)
+            queue.extend((child, obj.id, obj.dict_type, level + 1) for child in children)
+        return result
 
     @staticmethod
     def __create_objects_with_children(data: list[dict], model_class: type) -> list:

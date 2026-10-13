@@ -86,17 +86,12 @@
           :items="menuDetailItems"
           :scrollbar="false"
         >
-          <template #type="{ row }">
-            <FaStatusTag v-if="row?.type === MenuTypeEnum.CATALOG" type="warning" label="目录" />
-            <FaStatusTag v-if="row?.type === MenuTypeEnum.MENU" type="success" label="菜单" />
-            <FaStatusTag v-if="row?.type === MenuTypeEnum.BUTTON" type="danger" label="按钮" />
-            <FaStatusTag v-if="row?.type === MenuTypeEnum.EXTLINK" type="info" label="外链" />
-          </template>
-          <template #scope="{ row }">
-            <FaStatusTag v-if="row?.scope === MenuClientEnum.PC" type="primary" label="PC" />
-            <FaStatusTag v-else-if="row?.scope === MenuClientEnum.APP" type="success" label="APP" />
-            <FaStatusTag v-else type="info" :label="(row?.scope as string) || '—'" />
-          </template>
+          <template #type="{ row }"
+            ><FaDictTag :type="DictTypeEnum.SYS_MENU_TYPE" :value="row?.type"
+          /></template>
+          <template #scope="{ row }"
+            ><FaDictTag :type="DictTypeEnum.SYS_MENU_CLIENT" :value="row?.scope"
+          /></template>
           <template #icon="{ row }">
             <template v-if="row?.icon">
               <FaMenuRouteIcon :icon="row?.icon as string" :style="'vertical-align: -0.15em'" />
@@ -143,29 +138,13 @@
           <template #type>
             <ElRadioGroup v-model="formData.type" @change="handleMenuTypeChange">
               <ElRadio
-                v-if="allowedMenuTypeValues.includes(MenuTypeEnum.CATALOG)"
-                :value="MenuTypeEnum.CATALOG"
+                v-for="option in pageDict
+                  .options(DictTypeEnum.SYS_MENU_TYPE, 'number')
+                  .filter((item) => allowedMenuTypeValues.includes(item.value))"
+                :key="option.value"
+                :value="option.value"
+                >{{ option.label }}</ElRadio
               >
-                目录
-              </ElRadio>
-              <ElRadio
-                v-if="allowedMenuTypeValues.includes(MenuTypeEnum.MENU)"
-                :value="MenuTypeEnum.MENU"
-              >
-                菜单
-              </ElRadio>
-              <ElRadio
-                v-if="allowedMenuTypeValues.includes(MenuTypeEnum.BUTTON)"
-                :value="MenuTypeEnum.BUTTON"
-              >
-                按钮
-              </ElRadio>
-              <ElRadio
-                v-if="allowedMenuTypeValues.includes(MenuTypeEnum.EXTLINK)"
-                :value="MenuTypeEnum.EXTLINK"
-              >
-                外链
-              </ElRadio>
             </ElRadioGroup>
           </template>
 
@@ -177,8 +156,12 @@
               placeholder="请选择终端"
               style="width: 100%"
             >
-              <ElOption :value="MenuClientEnum.PC" label="PC 桌面" />
-              <ElOption :value="MenuClientEnum.APP" label="APP 移动" />
+              <ElOption
+                v-for="option in pageDict.options(DictTypeEnum.SYS_MENU_CLIENT)"
+                :key="option.value"
+                :value="option.value"
+                :label="option.label"
+              />
             </ElSelect>
             <ElText v-if="createParentLocked" type="info" size="small" class="block mt-1">
               子级终端与父菜单一致
@@ -254,6 +237,18 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([
+  DictTypeEnum.SYS_TRUE_FALSE,
+  DictTypeEnum.SYS_ENABLE_STATUS,
+  DictTypeEnum.SYS_MENU_TYPE,
+  DictTypeEnum.SYS_MENU_SCOPE,
+  DictTypeEnum.SYS_MENU_CLIENT,
+  DictTypeEnum.SYS_MENU_STATUS,
+  DictTypeEnum.SYS_ON_OFF,
+]);
+
 defineOptions({
   // 与菜单 route_name 一致：KeepAlive 的 include/exclude 按组件 name 匹配
   // eslint-disable-next-line vue/no-reserved-component-names -- 须与后端菜单 route_name 对齐；本组件仅由路由加载，不作为模板标签使用
@@ -353,10 +348,7 @@ function formatMenuOperationCell(row: MenuTable, ctx: Parameters<typeof buildMen
   });
 }
 const menuClientTab = ref<"pc" | "app">("pc");
-const menuSegmentedOptions = [
-  { label: "Web 菜单", value: "pc" },
-  { label: "APP 菜单", value: "app" },
-];
+const menuSegmentedOptions = pageDict.options(DictTypeEnum.SYS_MENU_CLIENT, "string");
 const searchForm = ref<MenuSearchForm>({
   name: undefined,
   status: undefined,
@@ -367,10 +359,7 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const STATUS_OPTIONS = [
-  { label: "启用", value: 0 },
-  { label: "停用", value: 1 },
-] as const;
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
 const menuSearchItems = computed<SearchFormItem[]>(() => [
   {
@@ -435,21 +424,21 @@ const menuDetailItems: import("@/components/display/fa-descriptions/index.vue").
       label: "是否缓存",
       prop: "keep_alive",
       tag: {
-        map: { true: { type: "success", text: "是" }, false: { type: "danger", text: "否" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
     },
     {
       label: "是否显示",
       prop: "hidden",
       tag: {
-        map: { true: { type: "success", text: "是" }, false: { type: "danger", text: "否" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
     },
     {
       label: "是否显示根路由",
       prop: "always_show",
       tag: {
-        map: { true: { type: "success", text: "是" }, false: { type: "danger", text: "否" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
     },
     { label: "菜单标题", prop: "title" },
@@ -458,28 +447,28 @@ const menuDetailItems: import("@/components/display/fa-descriptions/index.vue").
       label: "是否固定路由",
       prop: "affix",
       tag: {
-        map: { true: { type: "success", text: "是" }, false: { type: "danger", text: "否" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
     },
     {
       label: "嵌入iframe",
       prop: "is_iframe",
       tag: {
-        map: { true: { type: "success", text: "是" }, false: { type: "danger", text: "否" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
     },
     {
       label: "隐藏标签页",
       prop: "is_hide_tab",
       tag: {
-        map: { true: { type: "success", text: "是" }, false: { type: "danger", text: "否" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
     },
     {
       label: "显示红点角标",
       prop: "show_badge",
       tag: {
-        map: { true: { type: "success", text: "是" }, false: { type: "danger", text: "否" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
       },
     },
     { label: "文字角标内容", prop: "show_text_badge" },
@@ -487,7 +476,7 @@ const menuDetailItems: import("@/components/display/fa-descriptions/index.vue").
       label: "状态",
       prop: "status",
       tag: {
-        map: { 0: { type: "success", text: "启用" }, 1: { type: "danger", text: "停用" } },
+        map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
       },
     },
     { label: "排序", prop: "order" },
@@ -565,10 +554,7 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       type: "radiogroup",
       hidden: t !== MenuTypeEnum.EXTLINK,
       props: {
-        options: [
-          { label: "是", value: true },
-          { label: "否", value: false },
-        ],
+        options: pageDict.options(DictTypeEnum.SYS_TRUE_FALSE, "boolean"),
       },
     },
     {
@@ -576,10 +562,7 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       label: "状态",
       type: "radiogroup",
       props: {
-        options: [
-          { label: "启用", value: 0 },
-          { label: "禁用", value: 1 },
-        ],
+        options: pageDict.options(DictTypeEnum.SYS_MENU_STATUS, "number"),
       },
     },
     {
@@ -588,10 +571,7 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       type: "radiogroup",
       hidden: t === MenuTypeEnum.BUTTON,
       props: {
-        options: [
-          { label: "是", value: true },
-          { label: "否", value: false },
-        ],
+        options: pageDict.options(DictTypeEnum.SYS_TRUE_FALSE, "boolean"),
       },
     },
     {
@@ -600,10 +580,7 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       type: "radiogroup",
       hidden: t !== MenuTypeEnum.CATALOG && t !== MenuTypeEnum.MENU,
       props: {
-        options: [
-          { label: "是", value: true },
-          { label: "否", value: false },
-        ],
+        options: pageDict.options(DictTypeEnum.SYS_TRUE_FALSE, "boolean"),
       },
     },
     {
@@ -612,10 +589,7 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       type: "radiogroup",
       hidden: t !== MenuTypeEnum.MENU,
       props: {
-        options: [
-          { label: "开启", value: true },
-          { label: "关闭", value: false },
-        ],
+        options: pageDict.options(DictTypeEnum.SYS_ON_OFF, "boolean"),
       },
     },
     {
@@ -624,10 +598,7 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       type: "radiogroup",
       hidden: t === MenuTypeEnum.BUTTON,
       props: {
-        options: [
-          { label: "是", value: true },
-          { label: "否", value: false },
-        ],
+        options: pageDict.options(DictTypeEnum.SYS_TRUE_FALSE, "boolean"),
       },
     },
     {
@@ -636,10 +607,7 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       type: "radiogroup",
       hidden: t === MenuTypeEnum.BUTTON,
       props: {
-        options: [
-          { label: "是", value: true },
-          { label: "否", value: false },
-        ],
+        options: pageDict.options(DictTypeEnum.SYS_TRUE_FALSE, "boolean"),
       },
     },
     {
@@ -648,10 +616,7 @@ const menuDialogFormItems = computed<FormItem[]>(() => {
       type: "radiogroup",
       hidden: t === MenuTypeEnum.BUTTON,
       props: {
-        options: [
-          { label: "是", value: true },
-          { label: "否", value: false },
-        ],
+        options: pageDict.options(DictTypeEnum.SYS_TRUE_FALSE, "boolean"),
       },
     },
     {
@@ -878,12 +843,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       label: "类型",
       width: 80,
       align: "center",
-      status: {
-        1: { type: "warning", text: "目录" },
-        2: { type: "success", text: "菜单" },
-        3: { type: "danger", text: "按钮" },
-        4: { type: "info", text: "外链" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_MENU_TYPE),
     },
     { prop: "title", label: "菜单标题", minWidth: 120, showOverflowTooltip: true },
     { prop: "permission", label: "权限标识", minWidth: 160, showOverflowTooltip: true },
@@ -892,19 +852,13 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       label: "终端",
       width: 80,
       align: "center",
-      status: {
-        web: { type: "primary", text: "Web" },
-        app: { type: "success", text: "App" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_MENU_SCOPE),
     },
     {
       prop: "status",
       label: "状态",
       width: 80,
-      status: {
-        0: { type: "success", text: "启用" },
-        1: { type: "danger", text: "停用" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
     },
     { prop: "order", label: "排序", width: 72 },
     // ─── 路由配置 ───
@@ -946,10 +900,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       width: 72,
       align: "center",
       visible: false,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
     },
     {
       prop: "hidden",
@@ -957,10 +908,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       width: 72,
       align: "center",
       visible: false,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
     },
     {
       prop: "always_show",
@@ -968,10 +916,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       width: 72,
       align: "center",
       visible: false,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
     },
     {
       prop: "affix",
@@ -979,10 +924,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       width: 88,
       align: "center",
       visible: false,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
     },
     {
       prop: "is_iframe",
@@ -990,10 +932,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       width: 80,
       align: "center",
       visible: false,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
     },
     {
       prop: "is_hide_tab",
@@ -1001,10 +940,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       width: 88,
       align: "center",
       visible: false,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
     },
     {
       prop: "show_badge",
@@ -1012,10 +948,7 @@ const { columnChecks, columns } = useTableColumns<MenuTable>(
       width: 72,
       align: "center",
       visible: false,
-      status: {
-        true: { type: "success", text: "是" },
-        false: { type: "danger", text: "否" },
-      },
+      status: pageDict.tagMap(DictTypeEnum.SYS_TRUE_FALSE),
     },
     {
       prop: "show_text_badge",

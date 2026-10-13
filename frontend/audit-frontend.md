@@ -1,4 +1,4 @@
-# FastapiAdmin 前端摸底审计报告（frontend/web + frontend/app）
+# ResNexus 前端摸底审计报告（frontend/web + frontend/app）
 
 - 审计对象：`frontend/web`（Vue3 + Vite + TS + Element-Plus）、`frontend/app`（uni-app 移动端，Vue3 + wot-ui + alova）
 - 审计方式：**只读**静态审计 + 可用的静态检查实跑；后端仅作契约比对（只读）
@@ -200,7 +200,7 @@
   该地址交给 `wd-upload` 使用（模板 `:147`），成功后回调 `handleAvatarSuccess`（`:82-97`）。
 - 文件（**同缺陷的死代码**）：`frontend/app/src/api/module_system/user.ts:27-29`（`http.Post('/file/upload?upload_type=avatar', ...)`）——全仓无调用点（`grep uploadCurrentUserAvatar` 仅命中定义本身），与 Web 端同名方法（`web/src/api/module_system/user.ts:15-19`，被 `views/fastlink/current/profile.vue:489,630` 使用）形成"有实现但没人用"的分叉。
 - 后端事实：`backend/app/modules/common/file/controller.py:15`（`prefix="/file"`）挂在 `backend/app/api/v1/routers.py:63` 的 `"/common"` 域下 → 真实路径 `/api/v1/common/file/upload`；Web 端写法正确（`web/src/api/module_system/user.ts:17`：`/common/file/upload?upload_type=avatar`）。
-- 现象：真实请求变成 `https://service.fastapiadmin.com/api/v1/file/upload?upload_type=avatar`（dev/prod 的 `VITE_API_BASE_URL` 都是该域名），后端无此路由。
+- 现象：真实请求变成 `https://resnexus.example.com/api/v1/file/upload?upload_type=avatar`（dev/prod 的 `VITE_API_BASE_URL` 都是该域名），后端无此路由。
 - 影响：移动端个人中心**更换头像必然失败**（404），失败提示是通用文案（`profile.uploadFailed`），用户无法自查原因。
 - 附带问题（同一处代码）：该页**绕过了统一 `http` 层**——自己拼 URL（`:26`）、自己拼 `Authorization` 头（`:27`）、自己在回调里 `JSON.parse`（`:83-84`）。因此上传请求不享受 401 静默续期（`http/adapters/alova.ts:60-102`）与统一错误提示；且 `login_type`/`VITE_APP_BASE_API` 这类拼接散落在页面里，与 API 模块重复（对照 DUP-03 的 Web 端同类问题）。
 - 建议修法：
@@ -215,8 +215,8 @@
 - 建议修法：生产改为 `wss://<后端域名>`（或留空走 `VITE_API_BASE_URL` 的 `http→ws` 推导分支），并删除 `/ws` 这类路径残渣；在 `manifest`/CI 增加"生产 env 不得含 localhost"的校验。
 
 #### APP-04【P1 高】开发环境直连生产后端
-- 文件：`frontend/app/.env.development:5-6`（第 5 行是注释掉的 `http://localhost:8001`，第 6 行 `VITE_API_BASE_URL=https://service.fastapiadmin.com`），该文件**已被 git 跟踪**（`git ls-files frontend/app/.env.development`）
-- 现象：`pnpm dev` 默认把所有请求打到线上 `service.fastapiadmin.com`。对比 Web 端 `frontend/web/.env.development`（**未被跟踪**）指向 `http://127.0.0.1:8001` —— 两端策略相反。
+- 文件：`frontend/app/.env.development:5-6`（第 5 行是注释掉的 `http://localhost:8001`，第 6 行 `VITE_API_BASE_URL=https://resnexus.example.com`），该文件**已被 git 跟踪**（`git ls-files frontend/app/.env.development`）
+- 现象：`pnpm dev` 默认把所有请求打到线上 `resnexus.example.com`。对比 Web 端 `frontend/web/.env.development`（**未被跟踪**）指向 `http://127.0.0.1:8001` —— 两端策略相反。
 - 影响：本地调试/联调会直接读写生产库（新建工单、改公告、删数据都是真实操作）；本地登录会占用线上会话（同账号互踢）；新人 clone 后第一次 `pnpm dev` 就踩坑。
 - 建议修法：`.env.development` 默认指向本地，线上地址放进不跟踪的 `.env.development.local`；与 Web 端对齐"env 文件不入库、只提交 `.example`"的策略（Web 已有 `.env.*.example` 范式）。
 
@@ -235,7 +235,7 @@
 #### APP-07【P2 中】应用商店合规与产品化问题
 - 文件：`frontend/app/manifest.config.ts:13`（`name: 'wot-starter'`）、`:14`（`appid: '__UNI__1208592'`，模板自带）、`:36-52`（安卓权限列表）、`:68`（`appid: 'wxf306aa91619d2e1c'`，第 67 行 TODO 明确写着"替换为实际的微信小程序 appid"）、`:70`（`setting.urlCheck: false`）
 - 现象：
-  1. 应用名/DCloud appid 仍是 starter 模板值（页面标题却已是 FastapiAdmin）→ 名字与包标识不一致；
+  1. 应用名/DCloud appid 仍是 starter 模板值（页面标题却已是 ResNexus）→ 名字与包标识不一致；
   2. 申请了 `READ_LOGS`、`READ_PHONE_STATE`、`GET_ACCOUNTS`、`WRITE_SETTINGS`、`MOUNT_UNMOUNT_FILESYSTEMS` 等与业务无关的高敏权限；
   3. 真实的微信小程序 appid 被提交进仓库，且"待替换"的注释长期未清理；
   4. `urlCheck: false` 关闭了微信开发者工具的域名校验（仅影响开发者工具，但常被误当配置带进发包流程）。
@@ -411,15 +411,15 @@
 
 | 项 | 内容 |
 |---|---|
-| 文件:行号（改后） | `frontend/app/.env.production:25`：`VITE_APP_WS_ENDPOINT=ws://localhost:5180/ws` → `wss://service.fastapiadmin.com`（并把"只填基址、路径由代码拼接"写进注释） |
+| 文件:行号（改后） | `frontend/app/.env.production:25`：`VITE_APP_WS_ENDPOINT=ws://localhost:5180/ws` → `wss://resnexus.example.com`（并把"只填基址、路径由代码拼接"写进注释） |
 | 依据 | 消费点 `frontend/app/src/composables/useAiChat.ts:18-25` 的拼接是 `{VITE_APP_WS_ENDPOINT}{VITE_APP_BASE_API}/ai/chat/ws`，因此变量只能是**基址**，旧值多带了 `/ws` 又指向 localhost；后端 WS 路由确认在 `backend/app/modules/ai/chat/controller.py:194`（`@ChatRouter.websocket("/ws")` + `/ai` + `/chat` → `/api/v1/ai/chat/ws`）。站点为 HTTPS，`ws://` 会被浏览器/小程序拦截，故用 `wss://` |
-| 验证 | `pnpm run build:h5` 产物中 `wss://service.fastapiadmin.com` 命中 1 个文件（`assets/subPages-module_ai-chat-index.*.js`）；`grep -rl "localhost:5180" dist/` = **0** 个文件 |
+| 验证 | `pnpm run build:h5` 产物中 `wss://resnexus.example.com` 命中 1 个文件（`assets/subPages-module_ai-chat-index.*.js`）；`grep -rl "localhost:5180" dist/` = **0** 个文件 |
 
 ### 修复 5 — APP-04 开发环境直连生产后端
 
 | 项 | 内容 |
 |---|---|
-| 文件:行号（改后） | `frontend/app/.env.development:7`：`https://service.fastapiadmin.com` → `http://127.0.0.1:8001`；同文件 `:26` `VITE_APP_WS_ENDPOINT` 由 `wss://service.fastapiadmin.com` 改为 `ws://127.0.0.1:8001`（同类缺陷：dev 构建连生产 WS） |
+| 文件:行号（改后） | `frontend/app/.env.development:7`：`https://resnexus.example.com` → `http://127.0.0.1:8001`；同文件 `:26` `VITE_APP_WS_ENDPOINT` 由 `wss://resnexus.example.com` 改为 `ws://127.0.0.1:8001`（同类缺陷：dev 构建连生产 WS） |
 | 依据 | 与 `frontend/web/.env.development` 的 `VITE_API_BASE_URL = http://127.0.0.1:8001` 保持同一策略（Web 端该文件不入库、只提交 `.example`，本条使 App 的开发指向与之一致）。`frontend/app/.env.development` 本身**已被 git 跟踪**，之前默认把本地调试打到线上库 |
 | 验证 | `pnpm run build:h5` 产物中 `localhost:8001` / `127.0.0.1:8001` 命中 0（生产构建读 `.env.production`，符合预期）；`type-check` exit 0。**未做运行时联调**（本轮未起服务），需本地起后端后确认 127.0.0.1:8001 可达 |
 | 注意 | 本次只改地址、未写入任何密钥；`.env.production` 的 `VITE_API_BASE_URL` 保持生产域名不变 |

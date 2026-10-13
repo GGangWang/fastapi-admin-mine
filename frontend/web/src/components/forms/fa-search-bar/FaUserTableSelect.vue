@@ -21,6 +21,10 @@
 </template>
 
 <script setup lang="ts">
+import { DictTypeEnum } from "@/constants/dict-types";
+import { useDict } from "@/hooks/core/useDict";
+const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS]);
+
 import type { ISelectConfig } from "@/components/tables/fa-table-select/index.vue";
 import FaTableSelect from "@/components/tables/fa-table-select/index.vue";
 import UserAPI, { UserPageQuery } from "@/api/module_system/user";
@@ -61,10 +65,7 @@ const selectConfig: ISelectConfig = {
           width: "140px",
         },
       },
-      options: [
-        { label: "启用", value: 0 },
-        { label: "停用", value: 1 },
-      ],
+      options: pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"),
     },
   ],
   async indexAction(params: UserPageQuery) {
