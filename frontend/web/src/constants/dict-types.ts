@@ -43,4 +43,7 @@ export enum DictTypeEnum {
   STORAGE_REGION_OSS = "storage_region_oss",
   STORAGE_REGION_COS = "storage_region_cos",
   STORAGE_REGION_OBS = "storage_region_obs",
+  SYS_NOTICE_STATUS = "sys_notice_status",
+  SYS_HTTP_METHOD = "sys_http_method",
+  SYS_HTTP_RESULT = "sys_http_result",
 }

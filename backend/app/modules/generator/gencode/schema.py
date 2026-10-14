@@ -88,8 +88,7 @@ class GenTableColumnSchema(BaseModel):
             reason = reserved_word_reason(text)
             if reason:
                 raise ValueError(
-                    f"列名 {text!r} 是 {reason}，作为字段名会生成非法代码（如 class: Mapped[...]），"
-                    f"请改名后再导入/保存（可改为 {text}_ 之类）",
+                    f"列名 {text!r} 是 {reason}，作为字段名会生成非法代码（如 class: Mapped[...]），请改名后再导入/保存（可改为 {text}_ 之类）",
                 )
             raise ValueError(f"列名 {text!r} 不是合法的标识符（仅允许字母/数字/下划线，且不能以数字开头），代码生成器无法为它生成合法代码，请先改名")
         return text
@@ -128,8 +127,7 @@ class GenTableColumnSchema(BaseModel):
 
 
 class GenTableColumnOutSchema(GenTableColumnSchema, BaseSchema):
-    """业务表字段输出模型
-    """
+    """业务表字段输出模型"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -354,6 +352,4 @@ class GenTableQueryParam(BaseQueryParam, UserByQueryParam):
 
     table_name: str | None = Field(None, description="表名称", json_schema_extra={"q": "like"})
     table_comment: str | None = Field(None, description="表注释", json_schema_extra={"q": "like"})
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})
-
-
+    status: int | None = Field(None, ge=0, le=1, description="状态(1:启动 0:停用)", json_schema_extra={"q": "eq"})

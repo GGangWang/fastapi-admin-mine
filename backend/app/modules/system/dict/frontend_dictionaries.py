@@ -13,6 +13,7 @@ from app.common.dict_values import (
     MenuClient,
     MenuScope,
     MenuType,
+    NoticeStatus,
     OperationStatus,
     StorageConnectionMode,
     StorageEncoding,
@@ -37,6 +38,8 @@ from .constants import DictType
 
 
 def register_frontend_dictionaries(registry, EnumDictionary, DictItem):
+    registry.register(EnumDictionary(DictType.SYS_HTTP_METHOD, "HTTP请求方法", tuple(DictItem(method, method, sort=index) for index, method in enumerate(("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")))))
+    registry.register(EnumDictionary(DictType.SYS_HTTP_RESULT, "HTTP调用结果", (DictItem("success", "成功", list_class="success"), DictItem("failed", "失败", list_class="danger"), DictItem("cancelled", "取消", list_class="warning"), DictItem("closed", "提前关闭", list_class="info"))))
     registry.register(
         EnumDictionary(
             DictType.SYS_ENABLE_STATUS,
@@ -341,6 +344,18 @@ def register_frontend_dictionaries(registry, EnumDictionary, DictItem):
                 DictItem(StorageRegionOBS.CN_NORTH_4.value, "cn-north-4", sort=1),
                 DictItem(StorageRegionOBS.CN_EAST_2.value, "cn-east-2", sort=2),
                 DictItem(StorageRegionOBS.CN_SOUTH_1.value, "cn-south-1", sort=3),
+            ),
+        )
+    )
+
+    registry.register(
+        EnumDictionary(
+            DictType.SYS_NOTICE_STATUS,
+            "公告发布状态",
+            (
+                DictItem(NoticeStatus.DRAFT.value, "草稿", sort=0, list_class="info"),
+                DictItem(NoticeStatus.PUBLISHED.value, "已发布", sort=1, list_class="success"),
+                DictItem(NoticeStatus.ARCHIVED.value, "已归档", sort=2, list_class="warning"),
             ),
         )
     )

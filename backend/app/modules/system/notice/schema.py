@@ -6,6 +6,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.common.dict_values import NoticeStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.utils.xss_util import sanitize_html
 
@@ -16,7 +17,7 @@ class NoticeCreateSchema(BaseModel):
     notice_title: str = Field(..., min_length=1, max_length=64, description="公告标题")
     notice_type: str = Field(..., max_length=1, description="公告类型(1:通知 2:公告)")
     notice_content: str | None = Field(default=None, max_length=65535, description="公告内容")
-    status: int = Field(default=0, ge=0, le=2, description="状态(0:草稿 1:已发布 2:已归档)")
+    status: int = Field(default=NoticeStatus.DRAFT.value, ge=0, le=2, description="状态(0:草稿 1:已发布 2:已归档)")
     description: str | None = Field(default=None, max_length=255, description="描述")
 
     @field_validator("notice_type")
@@ -25,6 +26,7 @@ class NoticeCreateSchema(BaseModel):
         if value not in {"1", "2"}:
             raise ValueError("公告类型仅支持 1(通知) 或 2(公告)")
         return value
+
     @field_validator("notice_content")
     @classmethod
     def _sanitize_notice_content(cls, value: str | None) -> str | None:
@@ -57,3 +59,8 @@ class NoticeQueryParam(BaseQueryParam, UserByQueryParam):
     notice_title: str | None = Field(None, description="公告标题", json_schema_extra={"q": "like"})
     notice_type: str | None = Field(None, description="公告类型", json_schema_extra={"q": "eq"})
     status: int | None = Field(None, ge=0, le=2, description="状态(0:草稿 1:已发布 2:已归档)", json_schema_extra={"q": "eq"})
+
+
+class NoticeBatchStatusSchema(BaseModel):
+    ids: list[int] = Field(default_factory=list)
+    status: int = Field(..., ge=0, le=1, description="公告批量状态：0草稿、1已发布；归档通过编辑维护")

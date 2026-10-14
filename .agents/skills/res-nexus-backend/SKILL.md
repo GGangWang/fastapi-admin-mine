@@ -1,12 +1,13 @@
 ---
-name: fastapiadmin-backend
+name: res-nexus-backend
 description: "Use for ResNexus backend (backend/, FastAPI + SQLAlchemy async + Redis + Alembic + uv) code writing, module creation, route/permission wiring, table migrations, env config. Invoke before writing or changing backend code, creating business modules, or debugging route/permission issues. Keywords: FastAPI, controller, service, crud, model, schema, APIRouter, AuthPermission, OperationLogRoute, SuccessResponse, CustomException, Alembic, uv, plugin.toml, app/modules, app/plugin, routers.py."
-argument-hint: "module name, table name, interface path, or issue description"
+metadata:
+  argument-hint: "module name, table name, interface path, or issue description"
 ---
 
 # ResNexus 后端技能
 
-适用 `backend/`。管理端前端改动看 `fastapiadmin-web`；代码生成看 `fastapiadmin-generator`；部署看 `fastapiadmin-deploy`。
+适用 `backend/`。管理端前端改动看 `res-nexus-web`；代码生成看 `res-nexus-generator`；部署看 `res-nexus-deploy`。
 
 ## 何时使用
 

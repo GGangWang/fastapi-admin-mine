@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -109,7 +110,7 @@ class {{ class_name }}Service:
 
         data = obj_list.copy()
         for item in data:
-            item["status"] = "启用" if item.get("status") == 0 else "停用"
+            item["status"] = "启用" if item.get("status") == EnableStatus.ENABLED else "停用"
             creator_info = item.get("created_id")
             if isinstance(creator_info, dict):
                 item["created_id"] = creator_info.get("name", "未知")

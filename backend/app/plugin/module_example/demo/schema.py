@@ -6,6 +6,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import DateStr, DateTimeStr, TimeStr
 
@@ -14,7 +15,7 @@ class DemoCreateSchema(BaseModel):
     """新增模型"""
 
     name: str = Field(..., min_length=2, max_length=50, description="名称")
-    status: int = Field(default=0, ge=0, le=1, description="状态(0:正常 1:停用)")
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:正常 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="描述")
     int_val: int | None = Field(default=None, description="整数")
     bigint_val: int | None = Field(default=None, description="大整数")
@@ -48,8 +49,7 @@ class DemoCreateSchema(BaseModel):
 
     @model_validator(mode="after")
     def validate_name_format(self):
-        """核心业务规则校验
-        """
+        """核心业务规则校验"""
         # 格式校验：名称只能包含字母、数字、下划线和中划线
         if not all(c.isalnum() or c in "-_" for c in self.name):
             raise ValueError("名称只能包含字母、数字、下划线和中划线")
@@ -60,7 +60,7 @@ class DemoUpdateSchema(BaseModel):
     """更新模型"""
 
     name: str | None = Field(default=None, min_length=2, max_length=50, description="名称")
-    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:正常 1:停用)")
+    status: int | None = Field(default=None, ge=0, le=1, description="状态(1:正常 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="描述")
     int_val: int | None = Field(default=None, description="整数")
     bigint_val: int | None = Field(default=None, description="大整数")
@@ -84,4 +84,4 @@ class DemoQueryParam(BaseQueryParam, UserByQueryParam):
 
     name: str | None = Field(None, description="名称", json_schema_extra={"q": "like"})
     description: str | None = Field(None, description="描述", json_schema_extra={"q": "like"})
-    status: int | None = Field(None, description="状态(0:正常 1:停用)", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, description="状态(1:正常 0:停用)", json_schema_extra={"q": "eq"})

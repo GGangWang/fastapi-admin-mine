@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.common.dict_values import EnableStatus
 from app.core.base_model import ModelMixin
 
 if TYPE_CHECKING:
@@ -44,7 +45,7 @@ class MenuModel(ModelMixin):
     show_badge: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, comment="是否显示红点角标(True:是 False:否)")
     show_text_badge: Mapped[str | None] = mapped_column(String(20), comment="文字角标内容")
     scope: Mapped[str] = mapped_column(String(20), nullable=False, default="web", server_default="web", comment="菜单可见范围(web:管理端 desktop app:移动端)")
-    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)")
+    status: Mapped[int] = mapped_column(Integer, default=EnableStatus.ENABLED.value, server_default="1", nullable=False, comment="状态(1:启动 0:停用)")
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
     parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sys_menu.id", ondelete="SET NULL"), default=None, index=True, comment="父菜单ID")
     parent: Mapped["MenuModel | None"] = relationship(back_populates="children", remote_side="MenuModel.id", foreign_keys="MenuModel.parent_id", uselist=False)

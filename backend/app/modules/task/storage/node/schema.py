@@ -2,6 +2,7 @@ import codecs
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.modules.task.storage.core.base import DEFAULT_PORTS, StorageProtocol
 
@@ -113,7 +114,7 @@ class StorageNodeCreateSchema(StorageNodeConfigSchema):
 
     name: str = Field(..., min_length=1, max_length=64, description="存储源名称")
     is_default: bool = Field(default=False, description="是否默认存储源")
-    status: int = Field(default=0, ge=0, le=1, description="状态(0:启用 1:停用)")
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:启用 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="备注")
 
     @field_validator("name")
@@ -154,4 +155,4 @@ class StorageNodeQueryParam(BaseQueryParam, UserByQueryParam):
 
     name: str | None = Field(None, description="存储源名称", json_schema_extra={"q": "like"})
     protocol: StorageProtocol | None = Field(None, description="协议", json_schema_extra={"q": "eq"})
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启用 1:停用)", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(1:启用 0:停用)", json_schema_extra={"q": "eq"})

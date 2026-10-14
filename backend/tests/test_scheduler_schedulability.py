@@ -14,6 +14,7 @@ import pytest
 from apscheduler.triggers.date import DateTrigger
 from loguru import logger
 
+from app.common.dict_values import EnableStatus
 from app.common.enums import RET  # noqa: F401  (保持与其它测试一致的导入面)
 from app.config.setting import settings
 from app.core.ap_scheduler import SchedulerUtil
@@ -157,8 +158,8 @@ async def test_node_list_exposes_schedulable_status(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(SchedulerUtil, "get_jobs", classmethod(lambda cls, jobstore=None: []))
 
     service = node_service.NodeService(AuthSchema(), _EmptySession())  # type: ignore[arg-type]
-    raw_item = NodeOutSchema(id=201, name="原始代码块节点", status=0, func="def handler(): pass")
-    builtin_item = NodeOutSchema(id=202, name="内置函数节点", status=0, func="builtin:demo_handler")
+    raw_item = NodeOutSchema(id=201, name="原始代码块节点", status=EnableStatus.ENABLED.value, func="def handler(): pass")
+    builtin_item = NodeOutSchema(id=202, name="内置函数节点", status=EnableStatus.ENABLED.value, func="builtin:demo_handler")
     await service._enrich_runtime([raw_item, builtin_item])
 
     assert raw_item.schedulable is False
@@ -168,7 +169,7 @@ async def test_node_list_exposes_schedulable_status(monkeypatch: pytest.MonkeyPa
 
 
 async def test_node_list_marks_disabled_node_schedulable_but_via_status(monkeypatch: pytest.MonkeyPatch) -> None:
-    """停用节点（status=1）不触发告警，但仍如实返回 schedulable 字段。"""
+    """停用节点（status=EnableStatus.DISABLED.value）不触发告警，但仍如实返回 schedulable 字段。"""
     monkeypatch.setattr(settings, "SCHEDULER_ALLOW_CODE_EXEC", False)
     node_service._WARNED_UNSCHEDULABLE.clear()
     monkeypatch.setattr(SchedulerUtil, "get_jobs", classmethod(lambda cls, jobstore=None: []))
@@ -176,7 +177,7 @@ async def test_node_list_marks_disabled_node_schedulable_but_via_status(monkeypa
     sink_id = logger.add(logs, level="WARNING")
 
     service = node_service.NodeService(AuthSchema(), _EmptySession())  # type: ignore[arg-type]
-    disabled_item = NodeOutSchema(id=203, name="停用节点", status=1, func="def handler(): pass")
+    disabled_item = NodeOutSchema(id=203, name="停用节点", status=EnableStatus.DISABLED.value, func="def handler(): pass")
     try:
         await service._enrich_runtime([disabled_item])
     finally:
@@ -231,7 +232,7 @@ async def test_unschedulable_enabled_node_logs_warning_with_identifier(monkeypat
     sink_id = logger.add(logs, level="WARNING")
 
     service = node_service.NodeService(AuthSchema(), _EmptySession())  # type: ignore[arg-type]
-    item = NodeOutSchema(id=301, name="不可调度节点", status=0, func="def handler(): pass")
+    item = NodeOutSchema(id=301, name="不可调度节点", status=EnableStatus.ENABLED.value, func="def handler(): pass")
     try:
         await service._enrich_runtime([item])
         await service._enrich_runtime([item])  # 第二次不应重复告警
@@ -279,7 +280,7 @@ def test_register_node_job_accepts_builtin_when_disabled(monkeypatch: pytest.Mon
         trigger_args="2099-01-01 00:00:00",
         start_date=None,
         end_date=None,
-        status=0,
+        status=EnableStatus.ENABLED.value,
     )
     try:
         job = node_service.register_node_job(node)
@@ -297,7 +298,7 @@ def test_register_node_job_rejects_raw_code_when_disabled(monkeypatch: pytest.Mo
         trigger_args="2099-01-01 00:00:00",
         start_date=None,
         end_date=None,
-        status=0,
+        status=EnableStatus.ENABLED.value,
         func="def handler(*args, **kwargs):\n    return 1\n",
     )
     with pytest.raises(CustomException) as excinfo:
@@ -310,7 +311,7 @@ def test_register_node_job_rejects_raw_code_when_disabled(monkeypatch: pytest.Mo
 def test_run_node_once_allows_builtin_when_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """手动执行入口：开关关闭时 builtin 引用仍可排程执行。"""
     monkeypatch.setattr(settings, "SCHEDULER_ALLOW_CODE_EXEC", False)
-    node = _node(id="unit-once-builtin", trigger=None, trigger_args=None, start_date=None, end_date=None, status=0)
+    node = _node(id="unit-once-builtin", trigger=None, trigger_args=None, start_date=None, end_date=None, status=EnableStatus.ENABLED.value)
     temp_job_id = node_service.run_node_once(node)
     try:
         assert temp_job_id.startswith("unit-once-builtin")
@@ -322,7 +323,7 @@ def test_run_node_once_allows_builtin_when_disabled(monkeypatch: pytest.MonkeyPa
 def test_run_node_once_rejects_raw_code_when_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """手动执行入口：开关关闭时原始代码块被拒绝并提示 builtin 写法。"""
     monkeypatch.setattr(settings, "SCHEDULER_ALLOW_CODE_EXEC", False)
-    node = _node(id="unit-once-raw", trigger=None, func="def handler(): return 1", status=0)
+    node = _node(id="unit-once-raw", trigger=None, func="def handler(): return 1", status=EnableStatus.ENABLED.value)
     with pytest.raises(CustomException) as excinfo:
         node_service.run_node_once(node)
     assert "builtin:" in str(excinfo.value)

@@ -18,6 +18,8 @@ def test_dictionary_values_labels_styles_and_order_are_unchanged():
         assert len(definition.items) == len(items), name
         for actual, old in zip(definition.items, items, strict=True):
             fields = asdict(actual)
+            if name in {"SYS_ENABLE_STATUS", "SYS_MENU_STATUS"}:
+                old = dict(old, code=1 - old["code"])
             assert type(actual.code) is type(old["code"]), name
             assert {key: fields[key] for key in old} == old, name
 

@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseSchema
 
 
@@ -11,7 +12,7 @@ class DictNodeWrite(BaseModel):
     dict_name: str = Field(min_length=1, max_length=255)
     dict_code: str = Field(min_length=1, max_length=255)
     dict_sort: int = Field(default=0, ge=0)
-    status: int = Field(default=0, ge=0, le=1)
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1)
     is_default: bool = False
     css_class: str | None = Field(default=None, max_length=255)
     list_class: str | None = Field(default=None, max_length=255)

@@ -10,6 +10,7 @@ from sqlalchemy import Boolean, Column, Integer, MetaData, String, Table, create
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import AuthSchema
 from app.core.exceptions import CustomException
 from app.modules.system.dict.migration import migrate_legacy
@@ -72,10 +73,10 @@ def test_defaults_duplicates_soft_delete_and_branch_status():
         leaf = await service.save(cache, DictNodeWrite(parent_id=first["id"], dict_name="叶", dict_code="a"))
         with pytest.raises(CustomException):
             await service.delete(cache, [first["id"]])
-        await service.save(cache, DictNodeWrite(parent_id=root["id"], dict_name="A", dict_code="a", status=1, is_default=True), first["id"])
+        await service.save(cache, DictNodeWrite(parent_id=root["id"], dict_name="A", dict_code="a", status=EnableStatus.DISABLED.value, is_default=True), first["id"])
         assert await service.options("test_rules") == []
-        assert (await service.detail(leaf["id"]))["status"] == 0
-        await service.save(cache, DictNodeWrite(parent_id=root["id"], dict_name="A", dict_code="a", status=0, is_default=True), first["id"])
+        assert (await service.detail(leaf["id"]))["status"] == EnableStatus.ENABLED.value
+        await service.save(cache, DictNodeWrite(parent_id=root["id"], dict_name="A", dict_code="a", status=EnableStatus.ENABLED.value, is_default=True), first["id"])
         assert len(await service.effective("test_rules")) == 3
         await service.delete(cache, [leaf["id"]])
         await service.delete(cache, [first["id"]])
@@ -248,32 +249,36 @@ def test_type_permission_does_not_grant_item_writes():
 
 def test_startup_rejects_database_enum_collision():
     async def case(service, db, cache):
-        db.add(DictInfoModel(dict_name="冲突", dict_code="sys_true_false", dict_type="sys_true_false",
-                             dict_level=0, active_key=reservation(None, "sys_true_false")))
+        db.add(DictInfoModel(dict_name="冲突", dict_code="sys_true_false", dict_type="sys_true_false", dict_level=0, active_key=reservation(None, "sys_true_false")))
         await db.flush()
         with patch("app.modules.system.dict.service.async_db_session", return_value=db):
             with pytest.raises(RuntimeError, match="编码冲突"):
                 await DictDataService.init_cache(cache)
+
     run_case(case)
+
 
 def test_batch_flat_tree_and_source_dictionary(test_client):
     from app.modules.system.dict.constants import DictType
-    flat = test_client.post('/system/dict/types', json={'dict_types': [DictType.SYS_DICT_SOURCE, DictType.SYS_TRUE_FALSE, DictType.SYS_DICT_SOURCE]})
+
+    flat = test_client.post("/system/dict/types", json={"dict_types": [DictType.SYS_DICT_SOURCE, DictType.SYS_TRUE_FALSE, DictType.SYS_DICT_SOURCE]})
     assert flat.status_code == 200
-    data = flat.json()['data']
+    data = flat.json()["data"]
     assert set(data) == {DictType.SYS_DICT_SOURCE, DictType.SYS_TRUE_FALSE}
-    assert [row['dict_value'] for row in data[DictType.SYS_DICT_SOURCE]] == ['database', 'enum']
-    assert all(row['readonly'] for row in data[DictType.SYS_DICT_SOURCE])
-    tree = test_client.post('/system/dict/types', json={'dict_types': [DictType.SYS_DICT_SOURCE], 'mode': 'tree'})
+    assert [row["dict_value"] for row in data[DictType.SYS_DICT_SOURCE]] == ["database", "enum"]
+    assert all(row["readonly"] for row in data[DictType.SYS_DICT_SOURCE])
+    tree = test_client.post("/system/dict/types", json={"dict_types": [DictType.SYS_DICT_SOURCE], "mode": "tree"})
     assert tree.status_code == 200
-    assert [row['dict_code'] for row in tree.json()['data'][DictType.SYS_DICT_SOURCE]] == ['database', 'enum']
-    assert test_client.post('/system/dict/types', json={'dict_types': [], 'mode': 'invalid'}).status_code == 422
+    assert [row["dict_code"] for row in tree.json()["data"][DictType.SYS_DICT_SOURCE]] == ["database", "enum"]
+    assert test_client.post("/system/dict/types", json={"dict_types": [], "mode": "invalid"}).status_code == 422
 
 
 def test_registered_types_match_manifest():
     from pathlib import Path
+
     from app.modules.system.dict.constants import DictType
     from app.modules.system.dict.registry import REGISTRY
-    entries = json.loads((Path(__file__).resolve().parents[2] / 'shared/dict-types.json').read_text(encoding='utf-8'))
-    assert {item.value for item in DictType} == {entry['dict_type'] for entry in entries}
-    assert set(REGISTRY.definitions) == {entry['dict_type'] for entry in entries if entry['source'] == 'enum'}
+
+    entries = json.loads((Path(__file__).resolve().parents[2] / "shared/dict-types.json").read_text(encoding="utf-8"))
+    assert {item.value for item in DictType} == {entry["dict_type"] for entry in entries}
+    assert set(REGISTRY.definitions) == {entry["dict_type"] for entry in entries if entry["source"] == "enum"}

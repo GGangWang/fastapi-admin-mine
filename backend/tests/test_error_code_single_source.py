@@ -46,6 +46,11 @@ def test_no_explicit_status_code_in_business_code() -> None:
             if _ROUTE_DECORATOR_LINE.match(line):
                 allowed.append(record)  # FastAPI 路由装饰器参数（框架语义，非业务错误码）
                 continue
+            # A transport proxy must preserve upstream 206/304/416 statuses;
+            # these are not application business-error codes.
+            if path == _APP_DIR / "common/http/client.py" and "status_code=upstream.status_code" in line:
+                allowed.append(record)
+                continue
             violations.append(record)
     assert violations == [], f"业务代码出现显式 status_code 传参（应改为 code=... 或 CustomException.internal）：{violations}"
     assert allowed, "白名单为空：若路由装饰器写法变化请同步更新本测试"

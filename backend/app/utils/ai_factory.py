@@ -4,6 +4,7 @@ from agno.agent import Agent
 from agno.models.openai.like import OpenAILike
 from agno.team import Team
 
+from app.common.http import http_clients
 from app.config.setting import settings
 
 
@@ -16,8 +17,6 @@ class AgnoFactory:
     AGENT_EXPECTED_OUTPUT = "中文回答"
     AGENT_TEMPERATURE = 0.7
     NUM_HISTORY_RUNS = 3
-    REQUEST_TIMEOUT = 60.0  # LLM 请求总超时（秒），流式响应需放长
-    CONNECT_TIMEOUT = 10.0  # TCP 连接超时（秒）
 
     def create_agent(
         self,
@@ -72,7 +71,9 @@ class AgnoFactory:
                 api_key=api_key,
                 base_url=base_url,
                 temperature=temperature,
-                timeout=self.REQUEST_TIMEOUT,
+                # Inherit separate connect/read/pool timeouts from managed HTTPX.
+                http_client=http_clients.get("ai").raw,
+                max_retries=0,
             ),
             members=[resnexus_agent],
             instructions=self.AGENT_INSTRUCTIONS,

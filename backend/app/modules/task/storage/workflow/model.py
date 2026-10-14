@@ -1,6 +1,7 @@
 from sqlalchemy import JSON, Boolean, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.common.dict_values import EnableStatus
 from app.core.base_model import ModelMixin, UserMixin
 
 
@@ -17,7 +18,7 @@ class WorkflowModel(ModelMixin, UserMixin):
     name: Mapped[str] = mapped_column(String(64), nullable=False, index=True, comment="流程名称")
     task_type: Mapped[str] = mapped_column(String(16), nullable=False, default="parallel", comment="类型(parallel:多目标 chain:链式)")
     graph: Mapped[dict | None] = mapped_column(JSON, nullable=True, comment="VueFlow画布布局数据 {nodes:[{id,type,position,label}],edges:[{id,source,target,type,animated,style,label}]}")
-    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启用 1:停用)")
+    status: Mapped[int] = mapped_column(Integer, default=EnableStatus.ENABLED.value, server_default="1", nullable=False, comment="状态(1:启用 0:停用)")
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
 
 

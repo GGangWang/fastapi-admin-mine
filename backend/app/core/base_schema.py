@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.common.dict_values import EnableStatus
 from app.core.validator import DateTimeStr
 
 
@@ -47,7 +48,7 @@ class BatchSetAvailable(BaseModel):
     """批量设置可用状态的请求模型"""
 
     ids: list[int] = Field(default_factory=list, description="ID列表")
-    status: int = Field(default=0, ge=0, le=1, description="是否可用")
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="是否可用")
 
 
 class UploadResponseSchema(BaseModel):
@@ -78,7 +79,7 @@ class SessionInfoSchema(BaseModel):
     session_id: str = Field(default="", description="会话ID（Redis key 后缀）")
     user_id: int | None = Field(default=None, description="用户ID")
     is_superuser: bool = Field(default=False, description="是否为超级管理员")
-    user_status: int = Field(default=0, description="用户状态")
+    user_status: int = Field(default=EnableStatus.ENABLED.value, description="用户状态")
     name: str | None = Field(default=None, description="用户名称")
     user_name: str | None = Field(default=None, description="用户名")
     dept_id: int | None = Field(default=None, description="部门ID")
@@ -153,10 +154,10 @@ class PaginationQueryParam(BaseModel):
             try:
                 result = json.loads(v)
                 if not isinstance(result, list):
-                    raise ValueError("order_by 必须是 JSON 数组字符串，例如 [{\"id\":\"asc\"}]")
+                    raise ValueError('order_by 必须是 JSON 数组字符串，例如 [{"id":"asc"}]')
                 return result
             except json.JSONDecodeError:
-                raise ValueError("order_by 字符串无法解析为 JSON，请传入有效的 JSON 数组字符串，例如 [{\"id\":\"asc\"}]")
+                raise ValueError('order_by 字符串无法解析为 JSON，请传入有效的 JSON 数组字符串，例如 [{"id":"asc"}]')
         if isinstance(v, list):
             return v
         raise ValueError(f"order_by 类型无效: {type(v).__name__}，预期为 JSON 数组字符串或列表")

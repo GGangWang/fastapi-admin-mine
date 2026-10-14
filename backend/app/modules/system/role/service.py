@@ -3,6 +3,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.modules.system.dept.crud import DeptCRUD
@@ -242,7 +243,7 @@ class RoleService:
         # 处理数据
         data = role_list.copy()
         for item in data:
-            item["status"] = "启用" if item.get("status") == 0 else "停用"
+            item["status"] = "启用" if item.get("status") == EnableStatus.ENABLED else "停用"
             item["data_scope"] = data_scope_map.get(item.get("data_scope", 1), "")
 
         return await ExcelUtil.aexport_list2excel(list_data=data, mapping_dict=mapping_dict)

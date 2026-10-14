@@ -244,6 +244,8 @@
 </template>
 
 <script lang="ts" setup>
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([
@@ -382,7 +384,7 @@ async function deleteNodeRow(id: number | undefined, name: string | number) {
 }
 
 function buildNodeRowActions(row: NodeTable): TableOperationAction[] {
-  const disabled = row.status === 1;
+  const disabled = row.status === EnableStatusValue.DISABLED;
   const all: TableOperationAction[] = [
     {
       key: "execute",
@@ -443,10 +445,13 @@ async function handleExecuteOnce(id: number) {
 /** 单行启停联动（后端会同步注册/卸载调度） */
 async function handleToggleRowStatus(row: NodeTable) {
   if (row.id == null) return;
-  const enable = row.status === 1;
+  const enable = row.status === EnableStatusValue.DISABLED;
   try {
     await confirmToggleStatus(enable ? "enable" : "disable");
-    await NodeAPI.batchNode({ ids: [row.id], status: enable ? 0 : 1 });
+    await NodeAPI.batchNode({
+      ids: [row.id],
+      status: enable ? EnableStatusValue.ENABLED : EnableStatusValue.DISABLED,
+    });
     await refreshData();
   } catch {
     // 用户取消
@@ -460,7 +465,10 @@ async function handleBatchMoreStatus(type: "enable" | "disable") {
   try {
     await confirmToggleStatus(type);
     moreLoading.value = true;
-    await NodeAPI.batchNode({ ids, status: type === "enable" ? 0 : 1 });
+    await NodeAPI.batchNode({
+      ids,
+      status: type === "enable" ? EnableStatusValue.ENABLED : EnableStatusValue.DISABLED,
+    });
     selectedRows.value = [];
     faTableRef.value?.elTableRef?.clearSelection();
     await refreshData();

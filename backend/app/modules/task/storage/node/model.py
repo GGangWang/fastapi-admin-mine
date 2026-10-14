@@ -1,6 +1,7 @@
 from sqlalchemy import JSON, Boolean, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.common.dict_values import EnableStatus
 from app.core.base_model import ModelMixin, UserMixin
 
 
@@ -31,5 +32,5 @@ class StorageNodeModel(ModelMixin, UserMixin):
     multipart_memory_budget: Mapped[int] = mapped_column(Integer, default=512, nullable=False, comment="分片上传内存预算(MB)")
     advanced_config: Mapped[dict | None] = mapped_column(JSON, default=None, nullable=True, comment="SDK高级配置(JSON，按协议解析)")
     is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, comment="是否默认存储源")
-    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启用 1:停用)")
+    status: Mapped[int] = mapped_column(Integer, default=EnableStatus.ENABLED.value, server_default="1", nullable=False, comment="状态(1:启用 0:停用)")
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")

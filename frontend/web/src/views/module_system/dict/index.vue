@@ -86,7 +86,7 @@
           }}</ElTag></template
         >
         <template #status="{ row }"
-          ><ElTag :type="row.status === 0 ? 'success' : 'danger'">{{
+          ><ElTag :type="row.status === EnableStatusValue.ENABLED ? 'success' : 'danger'">{{
             pageDict.label(DictTypeEnum.SYS_ENABLE_STATUS, row.status)
           }}</ElTag></template
         >
@@ -209,6 +209,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { Back, Download, Plus, Refresh, Share } from "@element-plus/icons-vue";
 
 import { DictTypeEnum } from "@/constants/dict-types";
@@ -456,7 +458,7 @@ function openForm(row?: DictNode, detail = false) {
     dict_name: row?.dict_name ?? "",
     dict_code: row?.dict_code ?? "",
     dict_sort: row?.dict_sort ?? 0,
-    status: row?.status ?? 0,
+    status: row?.status ?? EnableStatusValue.ENABLED,
     is_default: row?.is_default ?? false,
     css_class: row?.css_class ?? "",
     list_class: row?.list_class ?? "",

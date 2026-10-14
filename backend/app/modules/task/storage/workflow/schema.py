@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 
 WorkflowTaskType = Literal["parallel", "chain"]
@@ -123,7 +124,7 @@ class WorkflowCreateSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=64, description="流程名称")
     task_type: WorkflowTaskType = Field("parallel", description="类型(parallel:多目标 chain:链式)")
     graph: dict = Field(..., description="VueFlow画布数据 {nodes:[{id,type,position,data}],edges:[{id,source,target,data}]}")
-    status: int = Field(default=0, ge=0, le=1, description="状态(0:启用 1:停用)")
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:启用 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="备注")
 
     @field_validator("name")
@@ -166,7 +167,7 @@ class WorkflowOutSchema(BaseSchema, UserBySchema):
     targets: list[WorkflowTargetSchema] = Field(default_factory=list)
     graph: dict | None = None
     graph_stats: dict | None = None
-    status: int = 0
+    status: int = EnableStatus.ENABLED.value
     description: str | None = None
 
 
@@ -175,4 +176,4 @@ class WorkflowQueryParam(BaseQueryParam, UserByQueryParam):
 
     name: str | None = Field(None, description="流程名称", json_schema_extra={"q": "like"})
     task_type: WorkflowTaskType | None = Field(None, description="类型(parallel/chain)", json_schema_extra={"q": "eq"})
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启用 1:停用)", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(1:启用 0:停用)", json_schema_extra={"q": "eq"})

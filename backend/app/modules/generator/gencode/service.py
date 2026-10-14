@@ -21,6 +21,7 @@ from sqlglot.expressions import (
 )
 
 from app.common.constant import GenConstant
+from app.common.dict_values import EnableStatus
 from app.common.enums import QueueEnum
 from app.config.path_conf import BASE_DIR
 from app.config.setting import settings
@@ -193,7 +194,7 @@ class GenTableService:
                 params=None,
                 affix=False,
                 parent_id=parent_catalog_id,
-                status=0,
+                status=EnableStatus.ENABLED.value,
                 description="模块目录（代码生成）",
             ),
         )
@@ -374,7 +375,7 @@ class GenTableService:
         except CustomException:
             raise
         except Exception:
-            logger.exception('导入业务表信息失败')
+            logger.exception("导入业务表信息失败")
             raise
 
     @handle_service_exception
@@ -459,7 +460,7 @@ class GenTableService:
         except CustomException:
             raise
         except Exception:
-            logger.exception('创建表结构失败')
+            logger.exception("创建表结构失败")
             raise
 
     @handle_service_exception
@@ -522,7 +523,7 @@ class GenTableService:
             except CustomException:
                 raise
             except Exception:
-                logger.exception('更新业务表信息失败')
+                logger.exception("更新业务表信息失败")
                 raise
         else:
             raise CustomException(msg="业务表不存在")
@@ -548,7 +549,7 @@ class GenTableService:
             # 再删除表信息
             await GenTableCRUD(self.auth, self.db).delete_gen_table(ids)
         except Exception:
-            logger.exception('删除业务表信息失败')
+            logger.exception("删除业务表信息失败")
             raise
 
     @handle_service_exception
@@ -795,7 +796,7 @@ class GenTableService:
                 params=None,
                 affix=False,
                 parent_id=dir_menu_id,  # 使用目录菜单ID或用户指定的parent_menu_id作为父ID
-                status=0,
+                status=EnableStatus.ENABLED.value,
                 description=f"{gen_table_schema.function_name}功能菜单",
             ),
         )
@@ -874,7 +875,7 @@ class GenTableService:
                     params=None,
                     affix=False,
                     parent_id=parent_menu.id,
-                    status=0,
+                    status=EnableStatus.ENABLED.value,
                     description=f"{gen_table_schema.function_name}功能按钮",
                 ),
             )
@@ -1021,7 +1022,7 @@ class GenTableService:
                 if sub_cfg:
                     await self.sync_db(sn, _sync_sub=False)
         except Exception:
-            logger.exception('同步失败')
+            logger.exception("同步失败")
             raise
 
     async def hydrate_sub_table(self, gen_table: GenTableOutSchema) -> None:

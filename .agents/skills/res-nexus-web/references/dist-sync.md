@@ -21,7 +21,7 @@ cd ../.. && rsync -a --delete frontend/web/dist/ docker/nginx/web/dist/ \
 ```
 
 - `--delete` 必须：产物文件带内容 hash，不删旧文件会残留
-- 产物只发服务器（无源码、无构建）的发布通道由根目录 `deploy-artifacts.sh` 负责（见 `fastapiadmin-deploy` 技能）：服务端同步走 `push_dir`（staging 解包 → 校验 index.html → 备份旧目录 → 原子替换）
+- 产物只发服务器（无源码、无构建）的发布通道由根目录 `deploy-artifacts.sh` 负责（见 `res-nexus-deploy` 技能）：服务端同步走 `push_dir`（staging 解包 → 校验 index.html → 备份旧目录 → 原子替换）
 
 ## 核对：对产物 grep，别只看 src/
 
@@ -38,4 +38,4 @@ grep -oE '.{0,60}readyState.{0,60}' <chunk> | grep -i websocket      # 确认守
 
 ## 后端一体化托管坑（owner：本文件）
 
-`register_frontend`（`backend/app/__init__.py`）的探测与挂载必须用**同一个** `path_conf.FRONTEND_DIST_DIR`（backend/dist）。历史上探测用 path_conf 但挂载硬编码 `frontend/web/dist`，导致 500：`check_dir=False` 时启动不报错、**首请求才炸**，只能靠 loguru 日志（`backend/logs/fastapiadmin.log`）定位。
+`register_frontend`（`backend/app/__init__.py`）的探测与挂载必须用**同一个** `path_conf.FRONTEND_DIST_DIR`（backend/dist）。历史上探测用 path_conf 但挂载硬编码 `frontend/web/dist`，导致 500：`check_dir=False` 时启动不报错、**首请求才炸**，只能靠 loguru 日志（`backend/logs/res-nexus.log`）定位。

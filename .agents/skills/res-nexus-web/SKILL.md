@@ -1,12 +1,13 @@
 ---
-name: fastapiadmin-web
+name: res-nexus-web
 description: "Use for ResNexus admin frontend (frontend/web, Vue3 + Vite + TS + Element Plus + Tailwind + Pinia) page creation, CRUD screens, API layer wiring, routing/menu/permission changes. Invoke before writing or modifying frontend/web code, or when debugging KeepAlive cache, duplicate-connection, or build-artifact-not-updated issues. Keywords: Vue3, FaTable, FaSearchBar, FaDialog, useTable, useCrudDialog, useCrudForm, useTableColumns, useImportExport, v-hasPerm, api/module_x, views/module_x, defineOptions, KeepAlive, worktab, dist, rsync."
-argument-hint: "page/route name, API module name, or issue description"
+metadata:
+  argument-hint: "page/route name, API module name, or issue description"
 ---
 
 # ResNexus Web 技能
 
-适用 `frontend/web/`（小程序端 `frontend/app` 归其自身技能）。后端接口改动看 `fastapiadmin-backend`。
+适用 `frontend/web/`（小程序端 `frontend/app` 归其自身技能）。后端接口改动看 `res-nexus-backend`。
 
 ## 何时使用
 

@@ -766,5 +766,51 @@
     "saved": "操作成功",
     "confirmDelete": "确认删除字典“{name}”？有下级的节点不能删除。",
     "parent": "上级节点"
+  },
+  "noticePublication": {
+    "batchPublish": "批量发布",
+    "batchDraft": "批量转为草稿",
+    "confirmPublish": "确认发布所选公告？",
+    "confirmDraft": "确认将所选公告转为草稿？",
+    "confirmTitle": "确认操作"
+  },
+  "httpLog": {
+    "month": "日志月份",
+    "detail": "HTTP日志详情",
+    "actions": "操作",
+    "request": "请求",
+    "response": "响应",
+    "loadBody": "读取正文",
+    "download": "下载完整正文",
+    "previous": "上一页",
+    "next": "下一页",
+    "format": "格式化JSON",
+    "copy": "复制当前页",
+    "start": "开始时间",
+    "end": "结束时间",
+    "notJson": "当前正文不是完整JSON",
+    "copied": "已复制",
+    "states": {
+      "not_recorded": "未记录",
+      "pending": "待写入",
+      "recorded": "已记录",
+      "failed": "写入失败"
+    },
+    "fields": {
+      "id": "请求标识",
+      "correlation_id": "链路ID",
+      "started_at": "请求时间",
+      "service": "服务",
+      "business": "业务名称",
+      "operator": "操作人",
+      "method": "请求方法",
+      "url": "请求地址",
+      "status_code": "状态码",
+      "result": "执行结果",
+      "duration_ms": "耗时(ms)",
+      "request_bytes": "请求大小(B)",
+      "response_bytes": "响应大小(B)",
+      "error": "异常"
+    }
   }
 }

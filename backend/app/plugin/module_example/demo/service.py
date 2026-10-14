@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -166,7 +167,7 @@ class DemoService:
 
         data = obj_list.copy()
         for item in data:
-            item["status"] = "正常" if item.get("status") == 0 else "停用"
+            item["status"] = "正常" if item.get("status") == EnableStatus.ENABLED else "停用"
             creator_info = item.get("created_id")
             if isinstance(creator_info, dict):
                 item["created_id"] = creator_info.get("name", "未知")
@@ -222,9 +223,9 @@ class DemoService:
                 try:
                     status_str = str(row["status"]).strip()
                     if status_str == "正常":
-                        status = 0
+                        status = EnableStatus.ENABLED.value
                     elif status_str == "停用":
-                        status = 1
+                        status = EnableStatus.DISABLED.value
                     else:
                         error_msgs.append(f"第{i}行: 状态必须是'正常'或'停用'")
                         continue

@@ -1,12 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
+from app.common.dict_values import NoticeStatus
+from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.utils.common_util import search_to_dict
 
 from .crud import NoticeCRUD
-from .schema import NoticeCreateSchema, NoticeOutSchema, NoticeQueryParam, NoticeUpdateSchema
+from .schema import NoticeBatchStatusSchema, NoticeCreateSchema, NoticeOutSchema, NoticeQueryParam, NoticeUpdateSchema
 from .stream import notice_stream_manager
 
 
@@ -89,12 +90,12 @@ class NoticeService:
         )
 
     async def available_page(self) -> PageResultSchema[NoticeOutSchema]:
-        """获取已启用的公告（首页展示用，最多 10 条）"""
+        """获取已发布的公告（首页展示用，最多 10 条）"""
         return await NoticeCRUD(self.auth, self.db).page(
             offset=0,
             limit=10,
             order_by=[{"id": "asc"}],
-            search={"status": ("eq", 0)},
+            search={"status": ("eq", NoticeStatus.PUBLISHED.value)},
             out_schema=NoticeOutSchema,
         )
 
@@ -147,11 +148,11 @@ class NoticeService:
                 raise CustomException(msg="删除失败，该数据不存在")
         await NoticeCRUD(self.auth, self.db).delete(ids=ids)
 
-    async def set_available(self, data: BatchSetAvailable) -> None:
-        """批量启用/禁用公告
+    async def set_available(self, data: NoticeBatchStatusSchema) -> None:
+        """批量发布/转为草稿公告
 
         参数:
-        - data (BatchSetAvailable): 批量设置状态模型
+        - data (NoticeBatchStatusSchema): 批量设置状态模型
         """
         await NoticeCRUD(self.auth, self.db).set(ids=data.ids, status=data.status)
         await _broadcast_notice_update()

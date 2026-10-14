@@ -114,6 +114,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([DictTypeEnum.SYS_USER_SEX, DictTypeEnum.SYS_ENABLE_STATUS]);
@@ -212,7 +214,7 @@ const { selectedRows, selectedIds, batchDeleting, onTableSelectionChange } =
 const createLoading = ref(false);
 const moreLoading = ref(false);
 
-const PK = "uuid" as const;
+const PK = "id" as const;
 
 const {
   columns,
@@ -497,7 +499,7 @@ async function handleMoreClick(value: "enable" | "disable") {
   try {
     await confirmToggleStatus(value);
     moreLoading.value = true;
-    const status = value === "enable" ? 0 : 1;
+    const status = value === "enable" ? EnableStatusValue.ENABLED : EnableStatusValue.DISABLED;
     await TestDemoBaseAPI.batchTestDemoBase({ ids, status });
     // 成功 / 失败提示由 axios 拦截器统一处理
     faTableRef.value?.elTableRef?.clearSelection();

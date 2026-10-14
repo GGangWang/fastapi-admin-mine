@@ -8,6 +8,7 @@ from redis.asyncio.client import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.common.enums import RET, RedisInitKeyConfig
 from app.config.setting import settings
 from app.core.base_schema import AuthSchema, CoreUserSchema
@@ -165,10 +166,10 @@ async def _authenticate(
     if not username:
         raise CustomException(msg="认证已失效", code=RET.UNAUTHORIZED.code)
 
-    user_status = user_info.get("user_status", 0)
+    user_status = user_info.get("user_status", EnableStatus.DISABLED.value)
     user_id = user_info.get("user_id")
 
-    if user_status == 1:
+    if user_status == EnableStatus.DISABLED:
         raise CustomException(msg="用户已被停用", code=RET.UNAUTHORIZED.code)
 
     if not user_id:
@@ -188,6 +189,8 @@ async def _authenticate(
         raise CustomException(msg="用户不存在", code=RET.UNAUTHORIZED.code)
 
     user = CoreUserSchema.model_validate(user_obj)
+    from app.common.http.logging import bind_http_operator
+    bind_http_operator(user.username)
     return AuthSchema(
         user=user,
         permissions=user_info.get("permissions", []),

@@ -10,16 +10,14 @@ from pydantic import (
     model_validator,
 )
 
+from app.common.dict_values import EnableStatus
 from app.config.setting import settings
 from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, CoreUserSchema, UserByQueryParam, UserBySchema
 from app.core.validator import DateTimeStr, email_validator, mobile_validator, password_validator
 from app.modules.system.menu.schema import MenuTreeOutSchema
 from app.modules.system.role.schema import RoleOutSchema
 
-PASSWORD_FIELD_DESC = (
-    f"密码（{settings.PASSWORD_MIN_LENGTH}-{settings.PASSWORD_MAX_LENGTH} 位，"
-    "需包含字母、数字、符号中的至少两类）"
-)
+PASSWORD_FIELD_DESC = f"密码（{settings.PASSWORD_MIN_LENGTH}-{settings.PASSWORD_MAX_LENGTH} 位，需包含字母、数字、符号中的至少两类）"
 
 
 class CurrentUserUpdateSchema(BaseModel):
@@ -126,17 +124,17 @@ class ResetPasswordSchema(BaseModel):
 
 
 class UserCreateSchema(CurrentUserUpdateSchema):
-    """新增用户
-    """
+    """新增用户"""
 
     username: str | None = Field(default=None, max_length=32, description="用户名")
     password: str | None = Field(default=None, description=PASSWORD_FIELD_DESC)
-    status: int = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:启动 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="备注")
     is_superuser: bool | None = Field(default=False, description="是否超管")
     dept_id: int | None = Field(default=None, description="部门ID")
     role_ids: list[int] | None = Field(default=[], description="角色ID列表")
     position_ids: list[int] | None = Field(default=[], description="岗位ID列表")
+
     @field_validator("username")
     @classmethod
     def validate_username(cls, value: str | None):
@@ -190,7 +188,7 @@ class UserUpdateSchema(CurrentUserUpdateSchema):
 
     username: str | None = Field(default=None, max_length=32, description="用户名")
     password: str | None = Field(default=None, description=PASSWORD_FIELD_DESC)
-    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    status: int | None = Field(default=None, ge=0, le=1, description="状态(1:启动 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="备注")
     dept_id: int | None = Field(default=None, description="部门ID")
     role_ids: list[int] | None = Field(default=[], description="角色ID列表")
@@ -227,7 +225,7 @@ class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema):
     email: EmailStr | None = Field(default=None, description="邮箱")
     gender: str | None = Field(default=None, max_length=1, description="性别(0:男 1:女 2:未知)")
     avatar: str | None = Field(default=None, max_length=255, description="头像")
-    status: int | None = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
+    status: int | None = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:启动 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="备注")
     dept_id: int | None = Field(default=None, description="部门ID")
     role_ids: list[int] | None = Field(default=[], description="角色ID列表")

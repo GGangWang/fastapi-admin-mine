@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.utils.common_util import search_to_dict
@@ -106,6 +107,6 @@ class PositionService:
         }
         data = position_list.copy()
         for item in data:
-            item["status"] = "启用" if item.get("status") == 0 else "停用"
+            item["status"] = "启用" if item.get("status") == EnableStatus.ENABLED else "停用"
             item["creator"] = item.get("created_by", {}).get("name", "未知") if isinstance(item.get("created_by"), dict) else "未知"
         return await ExcelUtil.aexport_list2excel(list_data=data, mapping_dict=mapping_dict)

@@ -3,6 +3,7 @@ from typing import Any
 from sqlalchemy import ColumnElement, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.modules.task.storage.core.base import (
@@ -179,13 +180,13 @@ class StorageNodeService:
         """获取可用存储源：优先指定 id；否则默认源；再退化为任一启用源。"""
         if source_id:
             source = await self._crud().get_or_404(id=source_id)
-            if source.status == 1:
+            if source.status == EnableStatus.DISABLED:
                 raise CustomException(msg="该存储源已停用")
             return source
-        source = await self._crud().get(status=0, is_default=True)
+        source = await self._crud().get(status=EnableStatus.ENABLED.value, is_default=True)
         if source:
             return source
-        source = await self._crud().get(status=0)
+        source = await self._crud().get(status=EnableStatus.ENABLED.value)
         if source:
             return source
         raise CustomException(msg="未配置可用的存储源，请先在存储源管理中创建")
@@ -198,7 +199,7 @@ class StorageNodeService:
         missing = [i for i in ids if i not in {o.id for o in objs}]
         if missing:
             raise CustomException(msg=f"存储源不存在: {missing}")
-        disabled = [o.name for o in objs if o.status == 1]
+        disabled = [o.name for o in objs if o.status == EnableStatus.DISABLED]
         if disabled:
             raise CustomException(msg=f"存储源已停用: {', '.join(disabled)}")
         return objs

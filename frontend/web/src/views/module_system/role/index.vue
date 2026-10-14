@@ -137,6 +137,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS, DictTypeEnum.SYS_DATA_SCOPE]);
@@ -397,7 +399,7 @@ const formData = ref<RoleForm>({
   name: undefined,
   order: 1,
   code: "",
-  status: 0,
+  status: EnableStatusValue.ENABLED,
   description: undefined,
 });
 
@@ -425,7 +427,7 @@ const initialFormData: RoleForm = {
   name: undefined,
   order: 1,
   code: "",
-  status: 0,
+  status: EnableStatusValue.ENABLED,
   description: undefined,
 };
 
@@ -665,7 +667,7 @@ async function handleMoreClick(value: "enable" | "disable") {
   try {
     await confirmToggleStatus(value);
     moreLoading.value = true;
-    const status = value === "enable" ? 0 : 1;
+    const status = value === "enable" ? EnableStatusValue.ENABLED : EnableStatusValue.DISABLED;
     await RoleAPI.batchRole({ ids, status });
     await refreshData();
     const userStore = useUserStore();

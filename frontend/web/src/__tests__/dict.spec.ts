@@ -12,10 +12,10 @@ vi.mock("@stores", () => ({
   store: undefined,
   useDictStore: (...args: any[]) => useDictStore(...args),
 }));
-const row = (value = "0", label = "启用") => ({
+const row = (value = "1", label = "启用") => ({
   dict_value: value,
   dict_label: label,
-  status: 0,
+  status: 1,
   list_class: "success",
 });
 beforeEach(() => {
@@ -61,7 +61,7 @@ describe("字典批量缓存", () => {
     await store.getDict(["a"]);
     api.getTypes.mockRejectedValueOnce(new Error("offline"));
     await expect(store.getDict(["a"], "flat", true)).rejects.toThrow("offline");
-    expect(store.getDictArray("a")[0]?.dict_value).toBe("0");
+    expect(store.getDictArray("a")[0]?.dict_value).toBe("1");
     await store.getDict(["a"], "flat", true);
     expect(api.getTypes).toHaveBeenCalledTimes(3);
   });
@@ -72,19 +72,19 @@ describe("字典批量缓存", () => {
         setup() {
           dictionary = useDict(["a", "b"]);
           const options = dictionary.options("a", "number");
-          return () => h("div", `${options[0]?.value}:${dictionary.label("a", 0)}`);
+          return () => h("div", `${options[0]?.value}:${dictionary.label("a", 1)}`);
         },
       })
     );
     await dictionary.ready;
     await nextTick();
-    expect(wrapper.text()).toBe("0:启用");
+    expect(wrapper.text()).toBe("1:启用");
     api.getTypes.mockImplementation(async () => ({
-      data: { data: { a: [row("0", "新标签")], b: [] } },
+      data: { data: { a: [row("1", "新标签")], b: [] } },
     }));
     useDictStore().clearDictData();
     await flushPromises();
-    expect(wrapper.text()).toBe("0:新标签");
+    expect(wrapper.text()).toBe("1:新标签");
     wrapper.unmount();
   });
 });
@@ -134,7 +134,7 @@ describe("字典转换与组件", () => {
   it("标签组件不发请求，支持样式、文本及原值回显", async () => {
     useDictStore().dictData.a = [row()];
     const wrapper = mount(FaDictTag, {
-      props: { type: "a", value: 0 },
+      props: { type: "a", value: 1 },
       global: {
         stubs: { ElTag: { props: ["type"], template: '<span :data-type="type"><slot /></span>' } },
       },

@@ -15,7 +15,7 @@ import secrets
 from typing import Any
 from urllib.parse import urlencode
 
-import httpx
+from app.common.http import http_clients
 from fastapi import Request
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,15 +59,14 @@ def _require_mini_credentials() -> tuple[str, str]:
 
 async def _http_json(method: str, url: str, **kwargs: Any) -> dict:
     """发起 HTTP 请求并解析 JSON 响应。"""
-    timeout = settings.HTTPX_DEFAULT_TIMEOUT
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        r = await client.request(method, url, **kwargs)
-        r.raise_for_status()
-        try:
-            return r.json()
-        except json.JSONDecodeError:
-            logger.error(f"微信 API 非 JSON 响应: {r.text[:500]}")
-            raise
+    client = http_clients.get("wechat").raw
+    r = await client.request(method, url, **kwargs)
+    r.raise_for_status()
+    try:
+        return r.json()
+    except json.JSONDecodeError:
+        logger.error(f"微信 API 非 JSON 响应: {r.text[:500]}")
+        raise
 
 
 async def _get_access_token(redis: Redis) -> str:
@@ -202,27 +201,26 @@ async def get_qrcode(redis: Redis, scene: str, page: str | None = None, width: i
     if page:
         payload["page"] = page
 
-    timeout = settings.HTTPX_DEFAULT_TIMEOUT
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        r = await client.post(
-            f"{_GET_QRCODE_URL}?access_token={access_token}",
-            json=payload,
-        )
-        r.raise_for_status()
+    client = http_clients.get("wechat").raw
+    r = await client.post(
+        f"{_GET_QRCODE_URL}?access_token={access_token}",
+        json=payload,
+    )
+    r.raise_for_status()
 
-        # 微信接口在出错时返回 JSON（Content-Type: application/json），
-        # 成功时返回 image（Content-Type: image/png 或类似）
-        content_type = r.headers.get("content-type", "")
-        if "json" in content_type.lower():
-            # 出错了，解析错误信息
-            try:
-                err_data = r.json()
-                _check_wx_error(err_data, "生成小程序码")
-            except json.JSONDecodeError:
-                pass
-            raise CustomException(msg="生成小程序码失败")
+    # 微信接口在出错时返回 JSON（Content-Type: application/json），
+    # 成功时返回 image（Content-Type: image/png 或类似）
+    content_type = r.headers.get("content-type", "")
+    if "json" in content_type.lower():
+        # 出错了，解析错误信息
+        try:
+            err_data = r.json()
+            _check_wx_error(err_data, "生成小程序码")
+        except json.JSONDecodeError:
+            pass
+        raise CustomException(msg="生成小程序码失败")
 
-        return r.content
+    return r.content
 
 
 def _username_for_wx_mini(openid: str) -> str:

@@ -8,6 +8,7 @@ from openpyxl import Workbook
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.common.response import CreatedResponse, ResponseSchema, SuccessResponse
 from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission, db_getter, redis_getter
@@ -139,7 +140,7 @@ async def flat_options(dict_type: str, db: DB, redis: Cache):
 
 @DictRouter.get("/type/optionselect", response_model=ResponseSchema[list[DictNodeOut]])
 async def type_options(auth: Read, db: DB):
-    rows = [dict(row, dict_type=row["dict_code"]) for row in await DictService(auth, db).all_nodes() if row["parent_id"] is None and row["status"] == 0]
+    rows = [dict(row, dict_type=row["dict_code"]) for row in await DictService(auth, db).all_nodes() if row["parent_id"] is None and row["status"] == EnableStatus.ENABLED]
     return SuccessResponse(data=rows)
 
 

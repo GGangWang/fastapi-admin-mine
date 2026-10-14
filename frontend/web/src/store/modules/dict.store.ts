@@ -4,7 +4,7 @@ import DictAPI, { type DictDataTable } from "@/api/module_system/dict";
 import { store } from "@stores";
 export type DictMode = "flat" | "tree";
 export const useDictStore = defineStore(
-  "dictStoreV3",
+  "dictStoreV4",
   () => {
     const dictData = ref<Record<string, DictDataTable[]>>({});
     const fetchedAt = ref<Record<string, number>>({});

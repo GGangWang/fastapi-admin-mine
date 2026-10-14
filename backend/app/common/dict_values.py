@@ -9,8 +9,8 @@ from app.common.enums import TicketTypeEnum as TicketTypeEnum
 class EnableStatus(IntEnum):
     """EnableStatus 业务编码。"""
 
-    ENABLED = 0
-    DISABLED = 1
+    ENABLED = 1
+    DISABLED = 0
 
 
 @unique
@@ -281,8 +281,8 @@ class StorageRegionOBS(StrEnum):
 class BusinessStatus(IntEnum):
     """BusinessStatus 业务编码。"""
 
-    NORMAL = 0
-    DISABLED = 1
+    NORMAL = 1
+    DISABLED = 0
 
 
 @unique
@@ -291,3 +291,12 @@ class DictionarySource(StrEnum):
 
     DATABASE = "database"
     ENUM = "enum"
+
+
+@unique
+class NoticeStatus(IntEnum):
+    """公告发布状态，与启停状态独立。"""
+
+    DRAFT = 0
+    PUBLISHED = 1
+    ARCHIVED = 2

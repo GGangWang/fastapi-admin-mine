@@ -101,6 +101,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS]);
@@ -311,7 +313,7 @@ const formData = ref<DeptForm>({
   code: "",
   order: 1,
   parent_id: undefined,
-  status: 0,
+  status: EnableStatusValue.ENABLED,
   description: undefined,
 });
 
@@ -338,7 +340,7 @@ function createInitialFormData(): DeptForm {
     code: "",
     order: 1,
     parent_id: undefined,
-    status: 0,
+    status: EnableStatusValue.ENABLED,
     description: undefined,
   };
 }
@@ -543,7 +545,7 @@ async function handleMoreClick(value: "enable" | "disable") {
   try {
     await confirmToggleStatus(value);
     moreLoading.value = true;
-    const status = value === "enable" ? 0 : 1;
+    const status = value === "enable" ? EnableStatusValue.ENABLED : EnableStatusValue.DISABLED;
     await DeptAPI.batchDept({ ids, status });
     await loadDeptData();
     await userStore.getUserInfo();

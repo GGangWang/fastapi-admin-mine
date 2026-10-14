@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-
 from typing import Any
 
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -66,7 +65,6 @@ class TestDemoBaseService:
         if not obj:
             raise CustomException(msg="更新失败，该数据不存在")
 
-
         obj = await TestDemoBaseCRUD(self.auth, self.db).update(id=id, data=data)
         return TestDemoBaseOutSchema.model_validate(obj)
 
@@ -86,16 +84,16 @@ class TestDemoBaseService:
     @staticmethod
     async def batch_export(obj_list: list[dict[str, Any]]) -> bytes:
         mapping_dict = {
-            'created_time': '创建时间',
-            'updated_time': '更新时间',
-            'created_id': '创建人ID',
-            'user_name': '用户名',
-            'user_sex': '性别',
+            "created_time": "创建时间",
+            "updated_time": "更新时间",
+            "created_id": "创建人ID",
+            "user_name": "用户名",
+            "user_sex": "性别",
         }
 
         data = obj_list.copy()
         for item in data:
-            item["status"] = "启用" if item.get("status") == 0 else "停用"
+            item["status"] = "启用" if item.get("status") == EnableStatus.ENABLED else "停用"
             creator_info = item.get("created_id")
             if isinstance(creator_info, dict):
                 item["created_id"] = creator_info.get("name", "未知")
@@ -106,8 +104,8 @@ class TestDemoBaseService:
 
     async def batch_import(self, file: UploadFile, update_support: bool = False) -> str:
         header_dict = {
-            '用户名': 'user_name',
-            '性别': 'user_sex',
+            "用户名": "user_name",
+            "性别": "user_sex",
         }
 
         try:
@@ -127,8 +125,7 @@ class TestDemoBaseService:
             for row in rows:
                 mapped_rows.append({en: row.get(ch) for ch, en in header_dict.items()})
 
-            required_fields = [
-            ]
+            required_fields = []
             errors = []
             for field in required_fields:
                 missing_indices = [i + 1 for i, r in enumerate(mapped_rows) if r.get(field) is None]
@@ -146,7 +143,6 @@ class TestDemoBaseService:
                 try:
                     create_schema = TestDemoBaseCreateSchema.model_validate(row)
 
-
                     await TestDemoBaseCRUD(self.auth, self.db).create(data=create_schema)
                     success_count += 1
                 except Exception as e:
@@ -158,6 +154,8 @@ class TestDemoBaseService:
                 result += "\n错误信息:\n" + "\n".join(error_msgs)
             return result
 
+        except CustomException:
+            raise
         except Exception as e:
             logger.error(f"批量导入失败: {e!s}")
             raise CustomException(msg=f"导入失败: {e!s}")
@@ -165,14 +163,14 @@ class TestDemoBaseService:
     @staticmethod
     def import_template_download() -> bytes:
         header_list = [
-            '用户名',
-            '性别',
+            "用户名",
+            "性别",
         ]
         selector_header_list = []
         option_list = []
 
-        selector_header_list.append('性别')
-        option_list.append({'性别': []})
+        selector_header_list.append("性别")
+        option_list.append({"性别": []})
 
         return ExcelUtil.get_excel_template(
             header_list=header_list,

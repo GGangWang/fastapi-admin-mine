@@ -185,6 +185,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([
@@ -513,7 +515,7 @@ const initialFormData: SourceForm = {
   multipart_memory_budget: 512,
   advanced_config: {},
   is_default: false,
-  status: 0,
+  status: EnableStatusValue.ENABLED,
   description: undefined,
 };
 

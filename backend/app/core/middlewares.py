@@ -10,6 +10,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 from starlette.types import ASGIApp
 
+from app.common.dict_values import EnableStatus
 from app.common.enums import RedisInitKeyConfig, SysParamKey
 from app.common.response import ErrorResponse
 from app.config.setting import settings
@@ -50,11 +51,7 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
                 config.get(SysParamKey.DEMO_ENABLE, False)
                 and request.method != "GET"
                 and (client_ip is None or client_ip not in config.get(SysParamKey.IP_WHITE_LIST, ()))
-                and not any(
-                    path.startswith(item.rstrip("*")) if item.endswith("*") else path == item
-                    for item in settings.WHITE_API_LIST_PATH
-                    if isinstance(item, str) and item
-                )
+                and not any(path.startswith(item.rstrip("*")) if item.endswith("*") else path == item for item in settings.WHITE_API_LIST_PATH if isinstance(item, str) and item)
             )
 
             if is_blacklisted or in_demo:
@@ -95,7 +92,7 @@ class RequestLogMiddleware(BaseHTTPMiddleware):
                 except json.JSONDecodeError:
                     logger.error("解析系统配置 %s 失败", key)
                     continue
-                if not isinstance(payload, dict) or payload.get("status", 0) != 0:
+                if not isinstance(payload, dict) or payload.get("status", EnableStatus.DISABLED.value) != EnableStatus.ENABLED:
                     continue
                 cv = payload.get("config_value")
                 if cv is None:
@@ -144,9 +141,10 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         cid = request.headers.get(self._header) or str(uuid.uuid4())
         token = set_correlation_id(cid)
         try:
-            response = await call_next(request)
+            from app.common.http import http_context
+            with http_context(operator=None):
+                response = await call_next(request)
             response.headers[self._header] = cid
             return response
         finally:
             reset_correlation_id(token)
-

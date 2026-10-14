@@ -164,6 +164,13 @@ class Settings(BaseSettings):
     # ******************* 外部 HTTP（httpx）******************* #
     # ================================================= #
     HTTPX_DEFAULT_TIMEOUT: float = 10.0  # 对外 HTTP 请求默认超时（秒）
+    HTTPX_CONNECT_TIMEOUT: float = 5.0
+    HTTPX_STREAM_CONNECT_TIMEOUT: float = 10.0
+    HTTPX_STREAM_READ_TIMEOUT: float = 60.0
+    HTTPX_POOL_TIMEOUT: float = 5.0
+    HTTPX_MAX_CONNECTIONS: int = 100
+    HTTPX_MAX_KEEPALIVE_CONNECTIONS: int = 20
+    HTTPX_LOG_QUEUE_SIZE: int = 256
 
     # ================================================= #
     # ********************* 日志配置 ******************* #

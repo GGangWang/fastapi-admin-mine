@@ -21,7 +21,7 @@ export function dictOptions(rows: DictDataTable[]): DictOption[] {
         id: row.id,
         value: String(row.dict_value ?? row.dict_code ?? ""),
         label: row.dict_label ?? row.dict_name ?? "",
-        disabled: row.status === 1,
+        disabled: row.status === 0,
         list_class: row.list_class,
         css_class: row.css_class,
         is_default: row.is_default,

@@ -3,18 +3,18 @@ from datetime import date, datetime, time
 from sqlalchemy import BIGINT, JSON, Boolean, Date, DateTime, Float, Integer, String, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.common.dict_values import EnableStatus
 from app.core.base_model import ModelMixin, UserMixin
 
 
 class DemoModel(ModelMixin, UserMixin):
-    """示例表 - 涵盖大多数常用数据类型
-    """
+    """示例表 - 涵盖大多数常用数据类型"""
 
     __tablename__: str = "example_demo"
     __table_args__: dict[str, str] = {"comment": "示例表"}
 
     name: Mapped[str] = mapped_column(String(64), nullable=False, index=True, comment="名称")
-    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:正常 1:停用)", index=True)
+    status: Mapped[int] = mapped_column(Integer, default=EnableStatus.ENABLED.value, server_default="1", nullable=False, comment="状态(1:正常 0:停用)", index=True)
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
     int_val: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="整数")
     bigint_val: Mapped[int | None] = mapped_column(BIGINT, nullable=True, comment="大整数")

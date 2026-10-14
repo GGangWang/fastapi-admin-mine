@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import validate_required_code
 
@@ -11,7 +12,7 @@ class DeptCreateSchema(BaseModel):
     order: int = Field(default=1, ge=0, description="显示顺序")
     code: str = Field(..., min_length=2, max_length=64, description="部门编码")
     parent_id: int | None = Field(default=None, ge=1, description="父部门ID")
-    status: int = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:启动 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="备注")
 
     @field_validator("name")
@@ -51,4 +52,4 @@ class DeptQueryParam(BaseQueryParam, UserByQueryParam):
     """部门管理查询参数"""
 
     name: str | None = Field(None, description="部门名称", json_schema_extra={"q": "like"})
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(1:启动 0:停用)", json_schema_extra={"q": "eq"})

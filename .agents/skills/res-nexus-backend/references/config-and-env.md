@@ -4,7 +4,7 @@
 
 - `app/config/setting.py`（pydantic Settings）统一读取，模板见 `backend/env/.env.example`
 - `--env=dev|prod` 决定读 `env/.env.dev` 还是 `env/.env.prod`（`ENV_PATH = Path(__file__).parents[2] / "env" / f".env.{env}"`）
-- docker 场景：镜像内 `.env.prod` 只是兜底，真实地址/密码由 compose 运行时注入（见 `fastapiadmin-deploy` 技能）
+- docker 场景：镜像内 `.env.prod` 只是兜底，真实地址/密码由 compose 运行时注入（见 `res-nexus-deploy` 技能）
 
 ## 数据库切换
 
@@ -28,7 +28,7 @@
 
 ## 其他常用项
 
-- `LOGGER_LEVEL`：默认 INFO；日志文件 `backend/logs/fastapiadmin.log`（loguru，占位符 `{}`）
+- `LOGGER_LEVEL`：默认 INFO；日志文件 `backend/logs/res-nexus.log`（loguru，占位符 `{}`）
 - `DEBUG`：默认 False，生产保持关闭
 - `DATABASE_HOST/REDIS_HOST`：docker 内用容器服务名 `mysql` / `redis`
 - `APP_SECRET_KEY` 等敏感项不入库不入镜像（deploy-artifacts 构建时会擦除）
@@ -40,3 +40,7 @@
 | 启动 SettingsError | 必填项缺失或 JSON 类字段（`OAUTH_ALLOWED_HOSTS` 等）格式错误 |
 | 接口跨域 4xx/被拒 | `PROD_CORS_ORIGINS` 为空或域名不匹配；看健康检查 `cors_origins_configured` |
 | Host 400 | `ALLOWED_HOSTS` 与请求 Host 不匹配（TrustedHostMiddleware 开启） |
+
+## 本地开发依赖
+
+本机 MySQL 和 Redis 通过 Docker 运行，现有容器名分别为 `mysql` 和 `redis`。本地连接拒绝时先检查容器状态，使用 `docker start mysql redis` 启动；不要尝试启动 Windows MySQL/Redis 服务或新建替代容器。

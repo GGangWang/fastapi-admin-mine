@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 
 
@@ -9,7 +10,7 @@ class PositionCreateSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=64, description="岗位名称")
     code: str = Field(..., min_length=1, max_length=64, description="岗位编码")
     order: int = Field(default=1, ge=0, description="显示排序")
-    status: int = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:启动 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="描述")
 
     @field_validator("name")
@@ -43,4 +44,4 @@ class PositionQueryParam(BaseQueryParam, UserByQueryParam):
     """岗位管理查询参数"""
 
     name: str | None = Field(None, description="岗位名称", json_schema_extra={"q": "like"})
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(1:启动 0:停用)", json_schema_extra={"q": "eq"})

@@ -19,7 +19,7 @@ class {{ class_name }}CreateSchema(BaseModel):
     {% for column in columns %}
     {% if column.column_name not in ['uuid', 'tenant_id', 'created_time', 'updated_time', 'created_id', 'updated_id', 'is_deleted', 'deleted_time', 'deleted_id'] and column.column_name != pk_column_name %}
     {% if column.column_name == 'status' %}
-    {{ column.column_name }}: {{ column.python_type }} = Field(default={% if column.python_type == "str" %}"0"{% else %}0{% endif %}{% if column.python_type == "int" %}, ge=0, le=1{% endif %}, description='{{ column.column_comment }}')
+    {{ column.column_name }}: {{ column.python_type }} = Field(default={% if column.python_type == "str" %}"1"{% else %}1{% endif %}{% if column.python_type == "int" %}, ge=0, le=1{% endif %}, description='{{ column.column_comment }}')
     {% elif column.column_name == 'description' %}
     {{ column.column_name }}: str | None = Field(default=None, description='{{ column.column_comment }}')
     {% elif column.python_type == "bool" or column.html_type == "switch" %}

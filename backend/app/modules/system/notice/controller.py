@@ -8,12 +8,12 @@ from fastapi.sse import EventSourceResponse, ServerSentEvent
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.response import ResponseSchema, SuccessResponse
-from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema, PaginationQueryParam
+from app.core.base_schema import AuthSchema, PageResultSchema, PaginationQueryParam
 from app.core.dependencies import AuthPermission, db_getter, get_current_user
 from app.core.router_class import OperationLogRoute
 from app.core.sse_manager import SSE_QUEUE_MAX_SIZE
 
-from .schema import NoticeCreateSchema, NoticeOutSchema, NoticeQueryParam, NoticeUpdateSchema
+from .schema import NoticeBatchStatusSchema, NoticeCreateSchema, NoticeOutSchema, NoticeQueryParam, NoticeUpdateSchema
 from .service import NoticeService
 from .stream import notice_stream_manager
 
@@ -81,19 +81,19 @@ async def delete_notice_controller(
 async def batch_set_available_notice_controller(
     auth: Annotated[AuthSchema, Security(AuthPermission(["module_system:notice:patch"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
-    data: Annotated[BatchSetAvailable, Body(description="状态设置")],
+    data: Annotated[NoticeBatchStatusSchema, Body(description="状态设置")],
 ) -> JSONResponse:
     await NoticeService(auth, db).set_available(data=data)
     return SuccessResponse(msg="批量修改公告状态成功")
 
 
-@NoticeRouter.get("/available", summary="获取全局启用公告", response_model=ResponseSchema[list[NoticeOutSchema]])
+@NoticeRouter.get("/available", summary="获取全局已发布公告", response_model=ResponseSchema[list[NoticeOutSchema]])
 async def get_notice_list_available_controller(
     auth: Annotated[AuthSchema, Security(get_current_user)],
     db: Annotated[AsyncSession, Depends(db_getter)],
 ) -> JSONResponse:
     result_dict: PageResultSchema[NoticeOutSchema] = await NoticeService(auth, db).available_page()
-    return SuccessResponse(data=result_dict.items, msg="查询已启用公告列表成功")
+    return SuccessResponse(data=result_dict.items, msg="查询已发布公告列表成功")
 
 
 @NoticeRouter.get("/stream", summary="通知实时流(SSE)", response_class=EventSourceResponse)
@@ -101,7 +101,7 @@ async def notice_stream_controller(
     auth: Annotated[AuthSchema, Security(get_current_user)],
     request: Request,
 ) -> AsyncGenerator[ServerSentEvent, None]:
-    """通知实时推送通道（SSE）：公告创建/更新/启停后向全部在线用户广播变更事件。
+    """通知实时推送通道（SSE）：公告创建/更新/发布状态变更后向全部在线用户广播变更事件。
 
     事件名 notice_update，载荷不含公告内容（轻量信号），客户端收到后重新拉取
     /notice/available 以库内数据为准（广播发生在请求事务提交前后毫秒级窗口内）。

@@ -766,5 +766,51 @@
     "saved": "Operation succeeded",
     "confirmDelete": "Delete dictionary \"{name}\"? Nodes with children cannot be deleted.",
     "parent": "Parent node"
+  },
+  "noticePublication": {
+    "batchPublish": "Publish selected",
+    "batchDraft": "Move selected to draft",
+    "confirmPublish": "Publish the selected notices?",
+    "confirmDraft": "Move the selected notices to draft?",
+    "confirmTitle": "Confirm action"
+  },
+  "httpLog": {
+    "month": "Log month",
+    "detail": "HTTP log detail",
+    "actions": "Actions",
+    "request": "Request",
+    "response": "Response",
+    "loadBody": "Load body",
+    "download": "Download complete body",
+    "previous": "Previous",
+    "next": "Next",
+    "format": "Format JSON",
+    "copy": "Copy current page",
+    "start": "Start time",
+    "end": "End time",
+    "notJson": "Body is not a complete JSON document",
+    "copied": "Copied",
+    "states": {
+      "not_recorded": "Not recorded",
+      "pending": "Pending",
+      "recorded": "Recorded",
+      "failed": "Write failed"
+    },
+    "fields": {
+      "id": "Request ID",
+      "correlation_id": "Correlation ID",
+      "started_at": "Started at",
+      "service": "Service",
+      "business": "Business",
+      "operator": "Operator",
+      "method": "Method",
+      "url": "URL",
+      "status_code": "Status code",
+      "result": "Result",
+      "duration_ms": "Duration(ms)",
+      "request_bytes": "Request bytes",
+      "response_bytes": "Response bytes",
+      "error": "Error"
+    }
   }
 }

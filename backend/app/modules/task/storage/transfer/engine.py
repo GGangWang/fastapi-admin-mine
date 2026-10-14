@@ -17,6 +17,7 @@ from typing import cast
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.database import async_db_session
 from app.core.logger import logger
 from app.modules.task.storage.core.base import StorageAdapterConfig
@@ -57,7 +58,7 @@ async def _broadcast(task: StorageTransferTaskModel, steps: list[StorageTransfer
 async def _build_config(db: AsyncSession, source_id: int) -> StorageAdapterConfig | None:
     """获取存储源并构造适配器配置（复用存储源服务，含 SDK 高级配置）；不存在或停用返回 None。"""
     source = await db.get(StorageNodeModel, source_id)
-    if source is None or source.status == 1:
+    if source is None or source.status == EnableStatus.DISABLED:
         return None
     return StorageNodeService._build_config(source)
 

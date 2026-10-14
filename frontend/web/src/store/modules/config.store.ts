@@ -34,7 +34,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 
 export const useConfigStore = defineStore(
-  "configStore",
+  "configStoreV2",
   () => {
     // 配置数据
     const configData = ref<Record<string, ConfigTable>>({});

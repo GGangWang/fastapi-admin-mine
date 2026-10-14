@@ -221,6 +221,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([
@@ -481,7 +483,7 @@ const allSources = ref<SourceTable[]>([]);
 
 const filteredSources = computed(() => {
   const kw = searchKeyword.value.trim().toLowerCase();
-  const list = allSources.value.filter((n) => n.status !== 1);
+  const list = allSources.value.filter((n) => n.status !== EnableStatusValue.DISABLED);
   if (!kw) return list;
   return list.filter((n) => (n.name || "").toLowerCase().includes(kw));
 });
@@ -822,7 +824,7 @@ const handleFinish = async () => {
     const payload: FlowForm = {
       name: formData.value.name.trim(),
       description: formData.value.description || undefined,
-      status: 0,
+      status: EnableStatusValue.ENABLED,
       task_type: "parallel",
       graph,
     };

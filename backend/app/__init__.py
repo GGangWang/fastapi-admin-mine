@@ -29,6 +29,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
 
     await InitializeData().init_db()
     logger.info(f"✅ {settings.DATABASE_TYPE} 连接初始化完成")
+    from app.common.http import http_clients
+    await http_clients.start(async_engine)
     await init_agno_tables()
     logger.info("✅ AI 会话表 初始化完成")
     await redis_connect(app, status=True)
@@ -55,6 +57,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
     try:
         await SchedulerUtil.shutdown(wait=True)
         logger.info("✅ 定时任务调度器已关闭")
+        await http_clients.close()
         await redis_connect(app, status=False)
         logger.info("✅ redis 连接已关闭")
         await async_engine.dispose()
@@ -126,6 +129,9 @@ def register_frontend(app: FastAPI) -> None:
     """注册前端静态文件路由。"""
     if path_conf.FRONTEND_DIST_DIR.exists():
         # 如果你的前端文件是稍后创建的（例如在创建应用对象之后通过单独的构建步骤生成），请设置 check_dir=False
+        # Production Vite assets use /web/. Register it before the root SPA
+        # catch-all so both standalone hosting and Docker use the same build.
+        app.frontend("/web", directory=str(path_conf.FRONTEND_DIST_DIR), check_dir=False)
         app.frontend("/", directory=str(path_conf.FRONTEND_DIST_DIR), check_dir=False)
 
 

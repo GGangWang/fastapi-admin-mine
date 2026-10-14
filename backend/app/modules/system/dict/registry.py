@@ -7,7 +7,7 @@ from enum import Enum
 from hashlib import sha256
 from typing import Any
 
-from app.common.dict_values import BooleanValue, BusinessStatus, DictionarySource
+from app.common.dict_values import BooleanValue, BusinessStatus, DictionarySource, EnableStatus
 from app.common.enums import BusinessType
 
 from .constants import DictType
@@ -23,7 +23,7 @@ class DictItem:
     code: str | int | bool
     label: str
     sort: int = 0
-    status: int = 0
+    status: int = EnableStatus.ENABLED.value
     is_default: bool = False
     css_class: str | None = None
     list_class: str | None = None
@@ -71,7 +71,7 @@ class DictionaryRegistry:
                 "dict_code": definition.code,
                 "dict_name": definition.name,
                 "dict_sort": 0,
-                "status": 0,
+                "status": EnableStatus.ENABLED.value,
                 "is_default": False,
                 "source": "enum",
                 "readonly": True,

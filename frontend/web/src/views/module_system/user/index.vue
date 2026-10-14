@@ -191,6 +191,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([
@@ -717,7 +719,7 @@ const formData = ref<UserForm>({
   email: undefined,
   mobile: undefined,
   is_superuser: false,
-  status: 0,
+  status: EnableStatusValue.ENABLED,
   description: undefined,
 });
 
@@ -774,7 +776,7 @@ const initialFormData: UserForm = {
   email: undefined,
   mobile: undefined,
   is_superuser: false,
-  status: 0,
+  status: EnableStatusValue.ENABLED,
   description: undefined,
 };
 
@@ -935,7 +937,7 @@ async function handleMoreClick(value: "enable" | "disable") {
   try {
     await confirmToggleStatus(value);
     moreLoading.value = true;
-    const status = value === "enable" ? 0 : 1;
+    const status = value === "enable" ? EnableStatusValue.ENABLED : EnableStatusValue.DISABLED;
     await UserAPI.batchUser({ ids, status });
     await refreshData();
   } catch {

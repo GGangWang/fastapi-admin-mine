@@ -13,6 +13,7 @@ from app.modules.system.auth.controller import AuthRouter
 from app.modules.system.dept.controller import DeptRouter
 from app.modules.system.dict.controller import DictRouter
 from app.modules.system.log.controller import LogRouter
+from app.modules.system.http_log.controller import HttpLogRouter
 from app.modules.system.menu.controller import MenuRouter
 from app.modules.system.notice.controller import NoticeRouter
 from app.modules.system.params.controller import ParamsRouter
@@ -43,6 +44,7 @@ DOMAIN_CONTROLLERS: dict[str, list[APIRouter]] = {
         TicketRouter,
         VersionRouter,
         LogRouter,
+        HttpLogRouter,
     ],
     "/monitor": [
         CacheRouter,

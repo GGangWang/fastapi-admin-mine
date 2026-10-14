@@ -10,6 +10,7 @@ from fastapi import Request
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus, LoginStatus
 from app.common.enums import EnvironmentEnum, RedisInitKeyConfig
 from app.config.setting import settings
 from app.core.base_schema import AuthSchema, JWTOutSchema, JWTPayloadSchema
@@ -83,7 +84,7 @@ async def auto_register_login_user(
             return existing
         # 原始异常被吞掉（可能是 DB/唯一约束/驱动等未知服务端故障）：按 500 返回，
         # 避免监控把内部故障误判为客户端错误；确实的客户端问题由 UserService 的 CustomException 透传
-        logger.exception('自动注册第三方登录用户失败')
+        logger.exception("自动注册第三方登录用户失败")
         raise
     user = await UserCRUD(auth, db).get(username=username)
     if not user:
@@ -145,10 +146,10 @@ class LoginService:
         menu_ids: list[int] = []
         if not user.is_superuser and hasattr(user, "roles"):
             for role in user.roles:
-                if role and role.status == 0:
+                if role and role.status == EnableStatus.ENABLED:
                     if hasattr(role, "menus"):
                         for menu in role.menus:
-                            if menu and menu.status == 0:
+                            if menu and menu.status == EnableStatus.ENABLED:
                                 menu_ids.append(menu.id)
                                 if menu.permission:
                                     permissions.append(menu.permission)
@@ -232,7 +233,7 @@ class LoginService:
                 msg="账号或密码错误",
             )
             raise CustomException(msg="账号或密码错误")
-        if user.status == 1:
+        if user.status == EnableStatus.DISABLED:
             await _write_login_log(
                 username=_login_username,
                 status=2,
@@ -260,7 +261,7 @@ class LoginService:
 
         await _write_login_log(
             username=user.username,
-            status=1,
+            status=LoginStatus.SUCCESS.value,
             login_ip=request_ip,
             login_location=login_location,
             request_os=_login_os,
@@ -273,7 +274,7 @@ class LoginService:
     @staticmethod
     async def prepare_user_for_login(db: AsyncSession, user: UserModel) -> UserModel:
         """登录前可用性校验并刷新最后登录时间（微信小程序 / OAuth 自动注册登录共用）。"""
-        if user.status == 1:
+        if user.status == EnableStatus.DISABLED:
             raise CustomException(msg="用户已被停用")
         refreshed = await UserCRUD(AuthSchema(), db).update_last_login(id=user.id)
         if not refreshed:
@@ -474,7 +475,7 @@ class LoginService:
         user = await UserCRUD(auth, db).get(id=user_id)
         if not user:
             raise CustomException(msg="刷新token失败，用户不存在")
-        if user.status == 1:
+        if user.status == EnableStatus.DISABLED:
             raise CustomException(msg="用户已被停用")
 
         access_expires = timedelta(seconds=settings.ACCESS_TOKEN_EXPIRE_SECONDS)

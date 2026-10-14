@@ -205,7 +205,7 @@ const createInitialFormData = (): {{ class_name }}Form => ({
   {% if column.is_insert or column.is_edit %}
   {% if column.column_name not in ['uuid', 'created_time', 'updated_time', 'created_id', 'updated_id', 'is_deleted', 'deleted_time', 'deleted_id', 'tenant_id'] and column.column_name != pk_column_name %}
   {% if column.column_name == "status" %}
-  {{ column.column_name }}: {% if column.python_type == "str" %}"0"{% else %}0{% endif %},
+  {{ column.column_name }}: {% if column.python_type == "str" %}"1"{% else %}1{% endif %},
   {% elif column.python_type == "bool" or column.html_type == "switch" %}
   {{ column.column_name }}: false,
   {% elif column.html_type in ["editor", "imageUpload", "fileUpload"] %}
@@ -797,7 +797,7 @@ async function handleMoreClick(value: "enable" | "disable") {
   try {
     await confirmToggleStatus(value);
     moreLoading.value = true;
-    const status = value === "enable" ? 0 : 1;
+    const status = value === "enable" ? 1 : 0;
     await {{ class_name }}API.batch{{ class_name }}({ ids, status });
     // 成功 / 失败提示由 axios 拦截器统一处理
     faTableRef.value?.elTableRef?.clearSelection();

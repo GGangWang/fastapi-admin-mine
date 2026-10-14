@@ -12,7 +12,7 @@ import secrets
 from typing import Any, Literal
 from urllib.parse import quote, urlencode
 
-import httpx
+from app.common.http import http_clients
 from fastapi import Request
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -129,24 +129,22 @@ def build_authorize_url(
 
 
 async def _http_json(method: str, url: str, **kwargs: Any) -> Any:
-    timeout = getattr(settings, "HTTPX_DEFAULT_TIMEOUT", 15.0)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        r = await client.request(method, url, **kwargs)
-        r.raise_for_status()
-        try:
-            return r.json()
-        except json.JSONDecodeError:
-            text = r.text
-            logger.error(f"OAuth 非 JSON 响应: {text[:500]}")
-            raise
+    client = http_clients.get("oauth").raw
+    r = await client.request(method, url, **kwargs)
+    r.raise_for_status()
+    try:
+        return r.json()
+    except json.JSONDecodeError:
+        text = r.text
+        logger.error(f"OAuth 非 JSON 响应: {text[:500]}")
+        raise
 
 
 async def _http_text(method: str, url: str, **kwargs: Any) -> str:
-    timeout = getattr(settings, "HTTPX_DEFAULT_TIMEOUT", 15.0)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        r = await client.request(method, url, **kwargs)
-        r.raise_for_status()
-        return r.text
+    client = http_clients.get("oauth").raw
+    r = await client.request(method, url, **kwargs)
+    r.raise_for_status()
+    return r.text
 
 
 async def exchange_github_token(client_id: str, client_secret: str, code: str, redirect_uri: str) -> str:

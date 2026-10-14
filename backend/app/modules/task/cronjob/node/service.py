@@ -11,6 +11,7 @@ from croniter import croniter
 from sqlalchemy import false, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.ap_scheduler import SchedulerUtil, scheduler
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
@@ -153,7 +154,7 @@ class NodeService:
             obj = await NodeCRUD(self.auth, self.db).get_obj_by_id_crud(id=mid)
             if not obj:
                 continue
-            if status == 1:
+            if status == EnableStatus.DISABLED:
                 unregister_node_job(node_id=mid)
             else:
                 try:
@@ -185,16 +186,11 @@ class NodeService:
             schedulable, reason = SchedulerUtil.describe_schedulability(item.func)
             item.schedulable = schedulable
             item.unschedulable_reason = None if schedulable else reason
-            if not schedulable and item.status == 0:
+            if not schedulable and item.status == EnableStatus.ENABLED:
                 _warn_unschedulable_node(node_id=node_id, name=item.name, reason=reason)
             elif schedulable:
                 _clear_unschedulable_warning(node_id)
-            stmt = (
-                select(JobModel)
-                .where(JobModel.job_id == node_id, JobModel.is_deleted == false())
-                .order_by(JobModel.created_time.desc())
-                .limit(1)
-            )
+            stmt = select(JobModel).where(JobModel.job_id == node_id, JobModel.is_deleted == false()).order_by(JobModel.created_time.desc()).limit(1)
             row = (await self.db.execute(stmt)).scalars().first()
             if row:
                 item.last_run_time = row.created_time.isoformat() if row.created_time else None
@@ -391,7 +387,7 @@ def register_node_job(node: NodeModel) -> Job | None:
     - 停用节点 / 未配置触发方式：从调度器移除（若有），返回 None；
     - 其余：按 trigger/trigger_args 注册，编辑时旧任务会自动被覆盖。
     """
-    if not node or node.status == 1 or not node.trigger or not (node.func or "").strip():
+    if not node or node.status == EnableStatus.DISABLED or not node.trigger or not (node.func or "").strip():
         unregister_node_job(node_id=node.id)
         return None
     trigger = _build_job_trigger(node.trigger, node.trigger_args, node.start_date, node.end_date)

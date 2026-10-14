@@ -256,5 +256,23 @@
     "dict_type": "storage_region_obs",
     "purpose": "OBS区域",
     "source": "enum"
+  },
+  {
+    "name": "SYS_NOTICE_STATUS",
+    "dict_type": "sys_notice_status",
+    "purpose": "公告发布状态",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_HTTP_METHOD",
+    "dict_type": "sys_http_method",
+    "purpose": "HTTP请求方法",
+    "source": "enum"
+  },
+  {
+    "name": "SYS_HTTP_RESULT",
+    "dict_type": "sys_http_result",
+    "purpose": "HTTP调用结果",
+    "source": "enum"
   }
 ]

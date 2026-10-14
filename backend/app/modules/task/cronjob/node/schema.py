@@ -2,6 +2,7 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import datetime_validator
 
@@ -103,7 +104,7 @@ class NodeUpdateSchema(NodeCreateSchema):
 class NodeOutSchema(NodeCreateSchema, BaseSchema, UserBySchema):
     """节点响应模型"""
 
-    status: int | None = Field(default=0, ge=0, le=1, description="状态(0:启用 1:停用)")
+    status: int | None = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:启用 0:停用)")
 
     # 运行时状态（由 service 查询调度器/执行日志后填充，静态场景为空）
     next_run_time: str | None = Field(default=None, description="下次运行时间")
@@ -122,7 +123,7 @@ class NodeQueryParam(BaseQueryParam, UserByQueryParam):
     """节点查询参数"""
 
     name: str | None = Field(None, description="节点名称", json_schema_extra={"q": "like"})
-    status: int | None = Field(None, ge=0, le=1, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, ge=0, le=1, description="状态(1:启动 0:停用)", json_schema_extra={"q": "eq"})
 
 
 class NodeRunResultSchema(BaseModel):

@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import AuthSchema, BatchSetAvailable
 from app.core.exceptions import CustomException
 from app.utils.common_util import (
@@ -91,7 +92,7 @@ class DeptService:
         dept_list = await DeptCRUD(self.auth, self.db).get_list()
         total_ids = []
 
-        if data.status == 0:
+        if data.status == EnableStatus.ENABLED:
             id_map = get_parent_id_map(model_list=dept_list)
             for dept_id in data.ids:
                 enable_ids = get_parent_recursion(id=dept_id, id_map=id_map)

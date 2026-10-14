@@ -1,6 +1,7 @@
 from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.common.dict_values import EnableStatus
 from app.core.base_model import ModelMixin
 
 
@@ -22,7 +23,7 @@ class DictInfoModel(ModelMixin):
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     css_class: Mapped[str | None] = mapped_column(String(255), nullable=True)
     list_class: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    status: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[int] = mapped_column(Integer, nullable=False, default=EnableStatus.ENABLED.value, server_default="1", comment="状态(1:启用 0:停用)")
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     # NULL releases reservations after soft deletion on all supported dialects.
     active_key: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)

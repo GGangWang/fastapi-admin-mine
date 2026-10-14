@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.common.dict_values import EnableStatus
 from app.core.base_model import MappedBase, ModelMixin, UserMixin
 
 if TYPE_CHECKING:
@@ -59,8 +60,7 @@ class UserPositionsModel(MappedBase):
 
 
 class UserModel(ModelMixin, UserMixin):
-    """用户模型
-    """
+    """用户模型"""
 
     __tablename__: str = "sys_user"
     __table_args__: dict[str, str] = {"comment": "用户表"}
@@ -78,7 +78,7 @@ class UserModel(ModelMixin, UserMixin):
     github_login: Mapped[str | None] = mapped_column(String(32), nullable=True, comment="Github登录")
     wx_login: Mapped[str | None] = mapped_column(String(32), nullable=True, comment="微信登录")
     qq_login: Mapped[str | None] = mapped_column(String(32), nullable=True, comment="QQ登录")
-    status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:启动 1:停用)")
+    status: Mapped[int] = mapped_column(Integer, default=EnableStatus.ENABLED.value, server_default="1", nullable=False, comment="状态(1:启动 0:停用)")
     description: Mapped[str | None] = mapped_column(Text, default=None, nullable=True, comment="备注")
 
     dept_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sys_dept.id", ondelete="SET NULL", onupdate="CASCADE", use_alter=True), nullable=True, index=True, comment="部门ID")

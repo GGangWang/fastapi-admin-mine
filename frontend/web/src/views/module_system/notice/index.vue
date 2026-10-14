@@ -43,6 +43,8 @@
             :delete-loading="batchDeleting"
             :create-loading="createLoading"
             :more-loading="moreLoading"
+            :enable-label="$t('noticePublication.batchPublish')"
+            :disable-label="$t('noticePublication.batchDraft')"
             @add="handleAdd"
             @delete="handleBatchDelete"
             @more="handleMoreClick"
@@ -130,9 +132,13 @@
 </template>
 
 <script setup lang="ts">
+import { NoticeStatusValue } from "@/enums/status.enum";
+import { useI18n } from "vue-i18n";
+const { t: translate } = useI18n();
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
-const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS, DictTypeEnum.SYS_NOTICE_TYPE]);
+const pageDict = useDict([DictTypeEnum.SYS_NOTICE_STATUS, DictTypeEnum.SYS_NOTICE_TYPE]);
 
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { confirmToggleStatus } from "@/hooks/core/useConfirm";
@@ -182,7 +188,7 @@ const showSearchBar = ref(true);
 const searchBarRef = ref<InstanceType<typeof FaSearchBar> | null>(null);
 const searchBarRules: Record<string, unknown> = {};
 
-const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
+const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_NOTICE_STATUS, "number");
 
 const noticeTypeSearchOptions = computed(() => pageDict.options(DictTypeEnum.SYS_NOTICE_TYPE));
 
@@ -240,7 +246,7 @@ const noticeDetailItems: import("@/components/display/fa-descriptions/index.vue"
       label: "状态",
       prop: "status",
       tag: {
-        map: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
+        map: pageDict.tagMap(DictTypeEnum.SYS_NOTICE_STATUS),
       },
     },
     { label: "描述", prop: "description" },
@@ -256,7 +262,7 @@ const formData = ref<NoticeForm>({
   notice_title: "",
   notice_type: "",
   notice_content: "",
-  status: 0,
+  status: NoticeStatusValue.DRAFT,
   description: undefined,
 });
 
@@ -275,7 +281,7 @@ const initialFormData: NoticeForm = {
   notice_title: "",
   notice_type: "",
   notice_content: "",
-  status: 0,
+  status: NoticeStatusValue.DRAFT,
   description: undefined,
 };
 
@@ -385,7 +391,7 @@ const {
         prop: "status",
         label: "状态",
         width: 88,
-        status: pageDict.tagMap(DictTypeEnum.SYS_ENABLE_STATUS),
+        status: pageDict.tagMap(DictTypeEnum.SYS_NOTICE_STATUS),
       },
       {
         prop: "notice_type",
@@ -558,9 +564,15 @@ async function handleMoreClick(value: "enable" | "disable") {
     return;
   }
   try {
-    await confirmToggleStatus(value);
+    await ElMessageBox.confirm(
+      translate(
+        value === "enable" ? "noticePublication.confirmPublish" : "noticePublication.confirmDraft"
+      ),
+      translate("noticePublication.confirmTitle"),
+      { type: "warning" }
+    );
     moreLoading.value = true;
-    const status = value === "enable" ? 0 : 1;
+    const status = value === "enable" ? NoticeStatusValue.PUBLISHED : NoticeStatusValue.DRAFT;
     await NoticeAPI.batchNotice({ ids, status });
     await refreshData();
     await noticeStore.getNotice(true);

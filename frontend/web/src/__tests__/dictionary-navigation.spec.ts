@@ -53,7 +53,7 @@ const root = {
   dict_type: "test_category",
   dict_level: 0,
   dict_sort: 0,
-  status: 0,
+  status: 1,
   is_default: false,
   source: "database",
   readonly: false,

@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import AuthSchema, BatchSetAvailable
 from app.core.exceptions import CustomException
 from app.utils.common_util import (
@@ -143,7 +144,7 @@ class MenuService:
         menu_list = await MenuCRUD(self.auth, self.db).get_list()
         total_ids = []
 
-        if data.status == 0:
+        if data.status == EnableStatus.ENABLED:
             id_map = get_parent_id_map(model_list=menu_list)
             for menu_id in data.ids:
                 enable_ids = get_parent_recursion(id=menu_id, id_map=id_map)

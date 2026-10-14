@@ -66,11 +66,11 @@
           </ElButton>
           <template #dropdown>
             <ElDropdownMenu>
-              <ElDropdownItem icon="Check" @click="$emit('more', 'enable')"
-                >批量启用</ElDropdownItem
-              >
+              <ElDropdownItem icon="Check" @click="$emit('more', 'enable')">{{
+                enableLabel
+              }}</ElDropdownItem>
               <ElDropdownItem icon="CircleClose" @click="$emit('more', 'disable')">
-                批量停用
+                {{ disableLabel }}
               </ElDropdownItem>
             </ElDropdownMenu>
           </template>
@@ -86,6 +86,8 @@ import { ArrowDown, Delete, Download, Plus, Upload } from "@element-plus/icons-v
 defineOptions({ name: "FaTableHeaderLeft" });
 
 interface Props {
+  enableLabel?: string;
+  disableLabel?: string;
   /** 勾选行主键，用于禁用批删 / 更多（插槽完全自定义时可不传） */
   removeIds?: Array<string | number>;
   /** 新增按钮权限，不传则不显示 */
@@ -112,6 +114,8 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
   removeIds: () => [],
+  enableLabel: "批量启用",
+  disableLabel: "批量停用",
   deleteLoading: false,
   importLoading: false,
   exportLoading: false,

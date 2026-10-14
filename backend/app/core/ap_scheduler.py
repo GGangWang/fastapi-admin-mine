@@ -29,6 +29,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from redis.asyncio import Redis
 from sqlalchemy.orm import Session
 
+from app.common.dict_values import EnableStatus
 from app.common.legacy_identifiers import LEGACY_SCHEDULER_LOCK_KEY
 from app.config.setting import settings
 from app.core.database import engine
@@ -59,6 +60,7 @@ def _humanize_job_error(detail: Any) -> str:
         if pattern in text:
             return f"{hint}｜原始信息: {text}"[:4000]
     return text
+
 
 # 多 worker 下单实例调度锁：所有进程共享同一个 RedisJobStore，若每个进程都自行
 # start，同一任务会被重复调度执行。仅持有锁的进程运行调度器并周期续期，其余进程
@@ -246,7 +248,7 @@ class SchedulerUtil:
             tz = ZoneInfo("Asia/Shanghai")
             want_ids: set[str] = set()
             for node in nodes:
-                if not node or node.status != 0 or not node.trigger or not (node.func or "").strip():
+                if not node or node.status != EnableStatus.ENABLED or not node.trigger or not (node.func or "").strip():
                     continue
                 # date 单次计划：执行时间已过的不再注册（执行完成后会被监听器移除）
                 if node.trigger == "date":
@@ -261,7 +263,7 @@ class SchedulerUtil:
             # 可观测性（t15）：把"已启用但当前不会执行"的节点与存量 job 显式打出来，
             # 否则开关调整后只会表现为"任务不动了"，运维无从定位
             for node in nodes:
-                if node.status != 0 or not node.trigger:
+                if node.status != EnableStatus.ENABLED or not node.trigger:
                     continue
                 schedulable, reason = cls.describe_schedulability(node.func)
                 if not schedulable:
@@ -588,10 +590,7 @@ class SchedulerUtil:
                 return False, f"内置处理器不可用：{exc}"
             return True, None
         if not settings.SCHEDULER_ALLOW_CODE_EXEC:
-            return False, (
-                "服务端已禁用代码块执行（SCHEDULER_ALLOW_CODE_EXEC=False）；"
-                "请改用内置函数型任务——把 func 改为 builtin:<模块名>[.<函数名>]（不经 exec，不受该开关限制）"
-            )
+            return False, ("服务端已禁用代码块执行（SCHEDULER_ALLOW_CODE_EXEC=False）；请改用内置函数型任务——把 func 改为 builtin:<模块名>[.<函数名>]（不经 exec，不受该开关限制）")
         return True, None
 
     @classmethod
@@ -716,10 +715,7 @@ class SchedulerUtil:
             if declared.get(func_name) is not handler:
                 raise ValueError(f"内置处理器未在该模块的 HANDLERS 中声明：{module_path}.{func_name}")
         elif getattr(handler, "__module__", None) != module.__name__:
-            raise ValueError(
-                f"内置处理器必须在本模块内定义或经 HANDLERS 声明：{module_path}.{func_name} "
-                f"实际来自 {getattr(handler, '__module__', '未知来源')}，已拒绝"
-            )
+            raise ValueError(f"内置处理器必须在本模块内定义或经 HANDLERS 声明：{module_path}.{func_name} 实际来自 {getattr(handler, '__module__', '未知来源')}，已拒绝")
         cls._builtin_handlers[name] = handler
         return handler
 

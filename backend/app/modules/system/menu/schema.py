@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema
 from app.core.validator import menu_request_validator
 
@@ -28,7 +29,7 @@ class MenuCreateSchema(BaseModel):
     )
     affix: bool = Field(default=False, description="是否固定标签页")
     parent_id: int | None = Field(default=None, ge=1, description="父菜单ID")
-    status: int = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:启动 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="描述")
     link: str | None = Field(default=None, max_length=500, description="外链地址(仅type=4)")
     is_iframe: bool = Field(default=False, description="是否嵌入iframe")
@@ -40,6 +41,7 @@ class MenuCreateSchema(BaseModel):
         default="web",
         description="菜单可见范围(web:管理端 desktop app:移动端)",
     )
+
     @field_validator("show_text_badge")
     @classmethod
     def _trim_show_text_badge(cls, v: str | None) -> str | None:
@@ -111,7 +113,7 @@ class MenuUpdateSchema(BaseModel):
     params: list[dict[str, str]] | None = Field(default=None, description="路由参数")
     affix: bool | None = Field(default=None, description="是否固定标签页")
     parent_id: int | None = Field(default=None, ge=1, description="父菜单ID")
-    status: int | None = Field(default=None, ge=0, le=1, description="状态(0:启动 1:停用)")
+    status: int | None = Field(default=None, ge=0, le=1, description="状态(1:启动 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="描述")
     link: str | None = Field(default=None, max_length=500, description="外链地址(仅type=4)")
     is_iframe: bool | None = Field(default=None, description="是否嵌入iframe")
@@ -124,6 +126,7 @@ class MenuUpdateSchema(BaseModel):
         description="菜单可见范围(web:管理端 app:移动端)",
     )
     parent_name: str | None = Field(default=None, max_length=50, description="父菜单名称")
+
     @field_validator("show_text_badge")
     @classmethod
     def _trim_show_text_badge(cls, v: str | None) -> str | None:
@@ -198,5 +201,3 @@ class MenuQueryParam(BaseQueryParam):
         description="菜单范围过滤(web:管理端 desktop app:移动端)",
         json_schema_extra={"q": "eq"},
     )
-
-

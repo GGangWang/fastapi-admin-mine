@@ -450,6 +450,8 @@ def test_python_type_is_not_js_reserved_prefixed() -> None:
     assert safe_python_type(None) == "str"
     assert safe_python_type("") == "str"
     assert safe_python_type("1int") == "str"
+
+
 # ── 6. 行/段分隔符与控制符转义 ────────────────────────────────────────────────
 
 
@@ -588,15 +590,27 @@ async def test_all_templates_pass_structural_gate_with_hostile_text() -> None:
         checked += 1
     assert checked == 13  # 10 主模板 + 3 子表模板
 
+
 async def test_vue_dictionary_batch_and_translation_contract():
-    table = _table(columns=[_column(column_name='id', is_pk=True, python_type='int'), _column(column_name='gender', dict_type='sys_user_sex', html_type='select', is_query=True)])
+    table = _table(columns=[_column(column_name="id", is_pk=True, python_type="int"), _column(column_name="gender", dict_type="sys_user_sex", html_type="select", is_query=True)])
     rendered = await _render_all(table)
-    vue = rendered['frontend/web/src/views/module_gen/demo/index.vue']
-    assert 'useDict([DictTypeEnum.SYS_TRUE_FALSE, DictTypeEnum.SYS_ENABLE_STATUS' in vue
+    vue = rendered["frontend/web/src/views/module_gen/demo/index.vue"]
+    assert "useDict([DictTypeEnum.SYS_TRUE_FALSE, DictTypeEnum.SYS_ENABLE_STATUS" in vue
     assert 'resolveDictType("sys_user_sex")' in vue
-    assert 'pageDict.options(' in vue
-    assert 'pageDict.label(' in vue
-    assert '<FaDictTag' in vue
-    assert 'dictStore.getDictArray' not in vue
+    assert "pageDict.options(" in vue
+    assert "pageDict.label(" in vue
+    assert "<FaDictTag" in vue
+    assert "dictStore.getDictArray" not in vue
     assert 'text: "启用"' not in vue
     assert 'label: "停用", value: 1' not in vue
+
+
+async def test_generated_availability_defaults_are_enabled():
+    table = _table(columns=[_column(column_name="id", is_pk=True, python_type="int"), _column(column_name="status", python_type="int", html_type="radio", dict_type="sys_enable_status")])
+    rendered = await _render_all(table)
+    vue = rendered["frontend/web/src/views/module_gen/demo/index.vue"]
+    assert "status: 1," in vue
+    schema = rendered["backend/app/plugin/module_gen/demo/schema.py"]
+    assert "status: int = Field(default=1" in schema
+    model = rendered["backend/app/plugin/module_gen/demo/model.py"]
+    assert 'default=1, server_default="1"' in model

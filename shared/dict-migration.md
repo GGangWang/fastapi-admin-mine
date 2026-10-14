@@ -16,7 +16,7 @@ const options = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number");
 
 后端批量接口：`POST /system/dict/types`，`{dict_types: [...], mode: "flat" | "tree"}`。省略 mode 保持原来的一级选项响应。树形响应仍省略类型根节点。未知类型返回空数组，前端正常缓存；网络失败不伪造选项。
 
-缓存：30 秒有效，flat/tree 隔离；持久化 key 升为 V3。退出登录、字典修改及刷新清理缓存。活跃页面刷新，缓存页激活时检查有效期。进行中的旧请求在清理后不能写回。
+缓存：30 秒有效，flat/tree 隔离；持久化 key 升为 V4。退出登录、字典修改及刷新清理缓存。活跃页面刷新，缓存页激活时检查有效期。进行中的旧请求在清理后不能写回。
 
 保留例外：
 - 字典页 `list_class` 选项是 Element Plus 视觉样式，与主题、布局和编辑器配置同属前端视觉配置。
@@ -43,3 +43,5 @@ if task.status == TransferStatus.SUCCESS:
 ```
 
 已有 TicketTypeEnum 继续复用；StorageProtocol 的旧导入路径 `app.modules.task.storage.core.base` 保留为兼容导出，引用的是同一个枚举类。不同业务的登录结果与操作结果、任务取消 `cancelled` 与传输取消 `canceled` 保持独立编码。
+
+启停状态自2026-10-14起统一为1启用/正常、0停用/禁用；公告使用独立发布状态字典。迁移及回退说明见 [status-encoding-migration.md](./status-encoding-migration.md)。

@@ -6,6 +6,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
 from app.core.validator import (
     role_permission_request_validator,
@@ -16,8 +17,7 @@ from app.modules.system.menu.schema import MenuOutSchema
 
 
 class RoleCreateSchema(BaseModel):
-    """角色创建模型
-    """
+    """角色创建模型"""
 
     name: str = Field(..., min_length=1, max_length=64, description="角色名称")
     code: str = Field(..., min_length=2, max_length=64, description="角色编码")
@@ -28,7 +28,7 @@ class RoleCreateSchema(BaseModel):
         le=3,
         description="数据权限范围(1:仅本人 2:本部门及以下 3:全部)",
     )
-    status: int = Field(default=0, ge=0, le=1, description="状态(0:启动 1:停用)")
+    status: int = Field(default=EnableStatus.ENABLED.value, ge=0, le=1, description="状态(1:启动 0:停用)")
     description: str | None = Field(default=None, max_length=255, description="描述")
 
     @field_validator("code")
@@ -36,6 +36,7 @@ class RoleCreateSchema(BaseModel):
     def validate_code(cls, value: str):
         """校验角色编码：字母开头，2-64 位，仅含字母/数字/下划线"""
         return validate_required_code(value)
+
     @field_validator("name")
     @classmethod
     def validate_name(cls, value: str):
@@ -47,8 +48,7 @@ class RoleCreateSchema(BaseModel):
 
 
 class RolePermissionSettingSchema(BaseModel):
-    """角色权限配置模型
-    """
+    """角色权限配置模型"""
 
     data_scope: int = Field(
         default=1,
@@ -71,13 +71,11 @@ class RolePermissionSettingSchema(BaseModel):
 
 
 class RoleUpdateSchema(RoleCreateSchema):
-    """角色更新模型
-    """
+    """角色更新模型"""
 
 
 class RoleOutSchema(RoleCreateSchema, BaseSchema, UserBySchema):
-    """角色信息响应模型
-    """
+    """角色信息响应模型"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -86,9 +84,8 @@ class RoleOutSchema(RoleCreateSchema, BaseSchema, UserBySchema):
 
 
 class RoleQueryParam(BaseQueryParam, UserByQueryParam):
-    """角色管理查询参数
-    """
+    """角色管理查询参数"""
 
     name: str | None = Field(None, description="角色名称", json_schema_extra={"q": "like"})
     code: str | None = Field(None, description="角色编码", json_schema_extra={"q": "eq"})
-    status: int | None = Field(None, description="状态(0:启动 1:停用)", json_schema_extra={"q": "eq"})
+    status: int | None = Field(None, description="状态(1:启动 0:停用)", json_schema_extra={"q": "eq"})

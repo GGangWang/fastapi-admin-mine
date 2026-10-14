@@ -348,6 +348,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([
@@ -390,7 +392,9 @@ const sourceMap = computed<Record<number, SourceTable>>(() => {
   return map;
 });
 /** 可用的存储源（status 0=启用 1=停用） */
-const enabledSources = computed(() => sources.value.filter((s) => s.status !== 1));
+const enabledSources = computed(() =>
+  sources.value.filter((s) => s.status === EnableStatusValue.ENABLED)
+);
 const sourceById = (id?: number | null) => (id ? sourceMap.value[id] : undefined);
 const sourceName = (id?: number | null) => (id ? sourceMap.value[id]?.name || `#${id}` : "—");
 const protoText = (s?: SourceTable) => s?.protocol || "?";
@@ -404,7 +408,9 @@ async function loadSources() {
 const flows = ref<FlowTable[]>([]);
 const selectedFlowId = ref<number | null>(null);
 /** 启用的流程（status 0=启用 1=停用） */
-const enabledFlows = computed(() => flows.value.filter((f) => f.status !== 1));
+const enabledFlows = computed(() =>
+  flows.value.filter((f) => f.status === EnableStatusValue.ENABLED)
+);
 
 function flowOptionLabel(f: FlowTable): string {
   const sources = (f.sources || []).map((s) => sourceName(s.source_id)).join("、");

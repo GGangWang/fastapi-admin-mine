@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
 
+from app.common.dict_values import EnableStatus
 from app.common.enums import RET
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.database import async_db_session
@@ -49,7 +50,7 @@ def active_nodes(rows: list[dict]) -> list[dict]:
         if node["id"] in seen:
             raise CustomException(msg="字典关系存在循环")
         seen.add(node["id"])
-        if node["status"] == 0:
+        if node["status"] == EnableStatus.ENABLED:
             result.append(node)
             queue.extend(children[node["id"]])
     return annotate(result)
@@ -176,9 +177,9 @@ class DictService:
 
     async def visible_children(self, key):
         path = await self.ancestors(key)
-        if any(row["status"] != 0 for row in path):
+        if any(row["status"] != EnableStatus.ENABLED for row in path):
             return []
-        return [row for row in await self.child_nodes(node_key(key)) if row["status"] == 0]
+        return [row for row in await self.child_nodes(node_key(key)) if row["status"] == EnableStatus.ENABLED]
 
     async def ancestors(self, key):
         node = await self.detail(key)

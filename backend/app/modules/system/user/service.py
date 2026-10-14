@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.dict_values import EnableStatus
 from app.config.setting import settings
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
@@ -132,7 +133,7 @@ class UserService:
             dept = await DeptCRUD(self.auth, self.db).get(id=data.dept_id)
             if not dept:
                 raise CustomException(msg="该数据不存在")
-            if dept.status == 1:
+            if dept.status == EnableStatus.DISABLED:
                 raise CustomException(msg="部门已被禁用")
 
         update_data = data.model_dump(exclude_unset=True, exclude_none=True, exclude={"role_ids", "position_ids"})
@@ -186,7 +187,7 @@ class UserService:
         missing = set(role_ids) - {r.id for r in roles}
         if missing:
             raise CustomException(msg=f"角色不存在: {sorted(missing)}")
-        if any(role.status != 0 for role in roles):
+        if any(role.status != EnableStatus.ENABLED for role in roles):
             raise CustomException(msg="部分角色已被禁用")
         await UserCRUD(self.auth, self.db).set_user_roles(user_objs=users, role_objs=roles)
 
@@ -199,7 +200,7 @@ class UserService:
         missing = set(position_ids) - {p.id for p in positions}
         if missing:
             raise CustomException(msg=f"岗位不存在: {sorted(missing)}")
-        if any(position.status != 0 for position in positions):
+        if any(position.status != EnableStatus.ENABLED for position in positions):
             raise CustomException(msg="部分岗位已被禁用")
         await UserCRUD(self.auth, self.db).set_user_positions(user_objs=users, position_objs=positions)
 
@@ -231,7 +232,7 @@ class UserService:
         _pc_only = {"scope": "web"}
         if self.auth.user.is_superuser:
             menu_all = await MenuCRUD(self.auth, self.db).get_list(
-                search={"type": ("in", [1, 2, 3, 4]), "status": 0, **_pc_only},
+                search={"type": ("in", [1, 2, 3, 4]), "status": EnableStatus.ENABLED.value, **_pc_only},
                 order_by=[{"order": "asc"}],
             )
             return [MenuOutSchema.model_validate(menu) for menu in menu_all]
@@ -301,7 +302,7 @@ class UserService:
         无论账号是否存在、是否停用、是否超管，均不返回可区分信息（防用户枚举）。
         """
         user = await UserCRUD(self.auth, self.db).get(username=data.username)
-        if user is not None and user.status == 0 and not user.is_superuser:
+        if user is not None and user.status == EnableStatus.ENABLED and not user.is_superuser:
             logger.info("password reset requested for username={}", data.username)
         return None
 
@@ -315,7 +316,7 @@ class UserService:
             username=data.username,
             password=await PwdUtil.ahash_password(password=data.password),
             name=data.name or data.username,
-            status=0,
+            status=EnableStatus.ENABLED.value,
         )
         create_data_dict = create_data.model_dump(exclude_none=True, exclude={"role_ids", "position_ids"})
         new_user = await UserCRUD(self.auth, self.db).create(data=create_data_dict)
@@ -423,7 +424,7 @@ class UserService:
                 "email": str(row["email"]).strip() if row.get("email") is not None else None,
                 "mobile": str(row["mobile"]).strip() if row.get("mobile") is not None else None,
                 "gender": str(row["gender"]).strip() if row.get("gender") is not None else "1",
-                "status": 0 if str(row["status"]).strip() == "正常" else 1,
+                "status": EnableStatus.ENABLED.value if str(row["status"]).strip() == "正常" else EnableStatus.DISABLED.value,
                 "dept_id": dept_id,
                 "password": await PwdUtil.ahash_password(password=settings.PASSWORD_IMPORT_DEFAULT),
             }
@@ -497,7 +498,7 @@ class UserService:
 
         data = user_list.copy()
         for item in data:
-            item["status"] = "启用" if item.get("status") == 0 else "停用"
+            item["status"] = "启用" if item.get("status") == EnableStatus.ENABLED else "停用"
             gender = item.get("gender")
             item["gender"] = "男" if gender == "1" else ("女" if gender == "2" else "未知")
             item["is_superuser"] = "是" if item.get("is_superuser") else "否"

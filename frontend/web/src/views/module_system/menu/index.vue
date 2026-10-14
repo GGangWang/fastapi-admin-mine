@@ -237,6 +237,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([
@@ -673,7 +675,7 @@ const formData = ref<MenuForm>({
   active_path: undefined,
   show_badge: false,
   show_text_badge: undefined,
-  status: 0,
+  status: EnableStatusValue.ENABLED,
   description: undefined,
   scope: MenuClientEnum.PC,
 });
@@ -1081,7 +1083,7 @@ const initialFormData: MenuForm = {
   active_path: undefined,
   show_badge: false,
   show_text_badge: undefined,
-  status: 0,
+  status: EnableStatusValue.ENABLED,
   description: undefined,
   scope: MenuClientEnum.PC,
 };
@@ -1236,7 +1238,7 @@ async function handleMoreClick(value: "enable" | "disable") {
   try {
     await confirmToggleStatus(value);
     moreLoading.value = true;
-    const status = value === "enable" ? 0 : 1;
+    const status = value === "enable" ? EnableStatusValue.ENABLED : EnableStatusValue.DISABLED;
     await MenuAPI.batchMenu({ ids, status });
     await loadMenuData();
   } catch {

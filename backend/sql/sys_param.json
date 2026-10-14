@@ -4,7 +4,7 @@
         "config_key": "demo_enable",
         "config_value": "off",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "是否启用演示模式（启用后非白名单IP只允许GET请求）"
     },
     {
@@ -12,7 +12,7 @@
         "config_key": "ip_white_list",
         "config_value": "[\"127.0.0.1\"]",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "演示模式下允许访问的IP列表"
     },
     {
@@ -20,7 +20,7 @@
         "config_key": "ip_black_list",
         "config_value": "[]",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "禁止访问的IP列表（任意请求均拒绝）"
     },
     {
@@ -28,7 +28,7 @@
         "config_key": "logo_url",
         "config_value": "/api/v1/static/image/logo.svg",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "平台Logo地址"
     },
     {
@@ -36,7 +36,7 @@
         "config_key": "favicon",
         "config_value": "/api/v1/static/image/favicon.svg",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "浏览器标签栏图标地址"
     },
     {
@@ -44,7 +44,7 @@
         "config_key": "login_bg",
         "config_value": "/api/v1/static/image/background.svg",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "登录页面背景图地址"
     },
     {
@@ -52,7 +52,7 @@
         "config_key": "copyright",
         "config_value": "ResNexus",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "页面底部版权信息"
     },
     {
@@ -60,7 +60,7 @@
         "config_key": "keep_record",
         "config_value": "",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "ICP备案号"
     },
     {
@@ -68,7 +68,7 @@
         "config_key": "help_doc",
         "config_value": "/fastlink/tutorial",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "帮助文档链接地址"
     },
     {
@@ -76,7 +76,7 @@
         "config_key": "privacy",
         "config_value": "",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "隐私政策链接地址"
     },
     {
@@ -84,7 +84,7 @@
         "config_key": "clause",
         "config_value": "",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "用户协议链接地址"
     },
     {
@@ -92,7 +92,7 @@
         "config_key": "git_code",
         "config_value": "",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "项目源码仓库地址"
     },
     {
@@ -100,7 +100,7 @@
         "config_key": "version",
         "config_value": "3.0.0",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "系统版本号"
     },
     {
@@ -108,7 +108,7 @@
         "config_key": "sys_name",
         "config_value": "ResNexus",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "平台系统名称，用于登录页等界面展示"
     },
     {
@@ -116,7 +116,7 @@
         "config_key": "login_title",
         "config_value": "统一纳管资源，提升管理效率",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "登录页左侧面板主标题文案"
     },
     {
@@ -124,7 +124,7 @@
         "config_key": "login_subtitle",
         "config_value": "集中管理资源信息、访问权限与运行状态，让资源管理清晰可控。",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "登录页左侧面板副标题文案"
     },
     {
@@ -132,7 +132,7 @@
         "config_key": "ip_location_enable",
         "config_value": "on",
         "config_type": true,
-        "status": 0,
+        "status": 1,
         "description": "是否启用IP归属地查询（基于内置ip2region离线库本地解析，不发起外网请求；关闭后只记录内网/未解析）"
     }
 ]

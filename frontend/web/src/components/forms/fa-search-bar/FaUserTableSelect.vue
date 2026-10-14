@@ -6,21 +6,15 @@
     @confirm-click="handleConfirm"
     @clear-click="handleClearSelection"
   >
-    <template #status="scope">
-      <template v-if="scope.row[scope.prop] === 0">
-        <ElTag type="success">启用</ElTag>
-      </template>
-      <template v-else-if="scope.row[scope.prop] === 1">
-        <ElTag type="danger">停用</ElTag>
-      </template>
-      <template v-else>
-        <ElTag type="info">未知</ElTag>
-      </template>
-    </template>
+    <template #status="scope"
+      ><FaDictTag :type="DictTypeEnum.SYS_ENABLE_STATUS" :value="scope.row[scope.prop]"
+    /></template>
   </FaTableSelect>
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS]);
@@ -57,7 +51,7 @@ const selectConfig: ISelectConfig = {
       type: "select",
       label: "状态",
       prop: "status",
-      initialValue: 0,
+      initialValue: EnableStatusValue.ENABLED,
       attrs: {
         placeholder: "全部",
         clearable: true,

@@ -153,6 +153,8 @@
 </template>
 
 <script setup lang="ts">
+import { EnableStatusValue } from "@/enums/status.enum";
+
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([DictTypeEnum.SYS_ENABLE_STATUS, DictTypeEnum.SYS_TRUE_FALSE]);
@@ -190,7 +192,7 @@ const STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_ENABLE_STATUS, "number"
 const createInitialFormData = (): DemoForm => ({
   id: undefined,
   name: "",
-  status: 0,
+  status: EnableStatusValue.ENABLED,
   description: undefined,
   int_val: undefined,
   bigint_val: undefined,
@@ -664,7 +666,7 @@ async function handleMoreClick(value: "enable" | "disable") {
   try {
     await confirmToggleStatus(value);
     moreLoading.value = true;
-    const status = value === "enable" ? 0 : 1;
+    const status = value === "enable" ? EnableStatusValue.ENABLED : EnableStatusValue.DISABLED;
     await DemoAPI.batchDemo({ ids, status });
     // 成功 / 失败提示由 axios 拦截器统一处理
     faTableRef.value?.elTableRef?.clearSelection();
