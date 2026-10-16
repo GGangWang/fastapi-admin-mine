@@ -1,6 +1,7 @@
 import re
 
 from app.common.constant import GenConstant
+from app.common.database_types import is_postgres_compatible
 from app.config.setting import settings
 from app.utils.string_util import StringUtil
 
@@ -84,7 +85,7 @@ class GenUtils:
         ]:
             if settings.DATABASE_TYPE == "mysql":
                 column.python_type = "bytes"
-            elif settings.DATABASE_TYPE == "postgres":
+            elif is_postgres_compatible(settings.DATABASE_TYPE):
                 column.python_type = "list"
         else:
             # 只有当python_type为None时才设置默认类型

@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.common.dict_values import EnableStatus
-from app.core.validator import DateTimeStr
+from app.core.validator import BeijingStoredDateTime, DateTimeStr
 
 
 class CommonSchema(BaseModel):
@@ -93,7 +93,7 @@ class SessionInfoSchema(BaseModel):
     login_location: str | None = Field(default=None, description="登录所属地")
     os: str | None = Field(default=None, description="操作系统")
     browser: str | None = Field(default=None, description="浏览器")
-    login_time: DateTimeStr | None = Field(default=None, description="登录时间")
+    login_time: BeijingStoredDateTime | None = Field(default=None, description="登录时间")
     login_type: str | None = Field(default=None, description="登录类型")
 
 

@@ -12,6 +12,7 @@ from sqlalchemy.orm.collections import InstrumentedList
 from sqlalchemy.sql.elements import Null
 from sqlalchemy.sql.expression import false, null, true
 
+from app.common.database_types import is_postgres_compatible
 from app.config.path_conf import STATIC_DIR
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -403,7 +404,7 @@ class SqlalchemyUtil:
         返回:
         - Null | None: SQLAlchemy null() 或 None。
         """
-        if need_explicit_null and dialect_name == "postgres":
+        if need_explicit_null and is_postgres_compatible(dialect_name):
             return null()
         return None
 
@@ -421,7 +422,7 @@ class SqlalchemyUtil:
         返回:
         - Any: SQLAlchemy 默认值表达式。
         """
-        if dialect_name == "postgres":
+        if is_postgres_compatible(dialect_name):
             return true() if value else false()
         return text("1" if value else "0")
 

@@ -1,6 +1,7 @@
 import json
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from functools import cache
 from typing import Any
 
 from fastapi import Depends, Request, WebSocket
@@ -12,27 +13,29 @@ from app.common.dict_values import EnableStatus
 from app.common.enums import RET, RedisInitKeyConfig
 from app.config.setting import settings
 from app.core.base_schema import AuthSchema, CoreUserSchema
-from app.core.database import async_db_session
+from app.core.database import async_db_session, databases
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
 from app.core.security import OAuth2Schema, decode_access_token
 
 
-async def db_getter(request: Request) -> AsyncGenerator[AsyncSession, None]:
-    """数据库会话 — 请求级生命周期管理。
+@cache
+def get_db(name: str = "default"):
+    """Cached dependency: one transaction per source per request."""
+    databases._config(name)
 
-    一个 HTTP 请求内所有 SQL 共享同一个事务：要么全成功，要么全失败。
-    读操作也走这个事务（牺牲一点 MVCC 隔离换取读已写一致性）。
-    """
-    async with async_db_session() as session:
-        request.state.database_session = session
-        async with session.begin():
+    async def dependency(request: Request) -> AsyncGenerator[AsyncSession, None]:
+        async with databases.session(name) as session:
+            if name == "default":
+                request.state.database_session = session
             yield session
-        # Run only after a successful commit. Rollbacks never publish cache
-        # generations for writes that were not persisted.
-        for callback in session.info.pop("after_commit_callbacks", {}).values():
-            await callback()
+
+    return dependency
+
+
+db_getter = get_db()
+log_db_getter = get_db("logs")
 
 
 async def redis_getter(request: Request) -> Redis:
@@ -190,6 +193,7 @@ async def _authenticate(
 
     user = CoreUserSchema.model_validate(user_obj)
     from app.common.http.logging import bind_http_operator
+
     bind_http_operator(user.username)
     return AuthSchema(
         user=user,

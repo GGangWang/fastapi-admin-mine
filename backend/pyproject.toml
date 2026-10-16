@@ -45,7 +45,7 @@ dependencies = [
     "aiomysql>=0.3.2",
 ]
 
-# 数据库驱动按需安装：uv sync --extra mysql / --extra postgres / --extra sqlite
+# 数据库驱动按需安装：uv sync --extra mysql / --extra postgres / --extra kingbase / --extra sqlite
 # 默认（不指定 extra）只装核心依赖，启动时会提示缺少对应驱动
 [project.optional-dependencies]
 mysql = [
@@ -56,10 +56,13 @@ postgres = [
     "asyncpg==0.31.0",                       # 异步驱动（ASYNC_DB_URI）
     "psycopg[binary]==3.3.2",                # 同步驱动（DB_URI，自带 libpq）
 ]
+kingbase = [
+    "psycopg[binary]==3.3.2",                # PG 兼容模式：同步和异步共用 psycopg 3
+]
 sqlite = [
     "aiosqlite==0.22.1",
 ]
-# 一个进程同时支持三种库（体积最大，适合本地开发）
+# 一个进程同时支持四种库（体积最大，适合本地开发）
 all-db = [
     "aiomysql>=0.2.0",
     "pymysql==1.2.0",

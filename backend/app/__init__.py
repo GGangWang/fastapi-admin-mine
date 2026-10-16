@@ -19,54 +19,57 @@ from .utils.console import console_end, console_start
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
+    from app.common.http import http_clients
     from app.core.ap_scheduler import SchedulerUtil
-    from app.core.database import async_engine
+    from app.core.database import databases
     from app.core.redis_crud import redis_connect
     from app.modules.ai.chat.crud import init_agno_tables
     from app.modules.system.dict.service import DictDataService
     from app.modules.system.params.service import ParamsService
     from app.scripts.initialize import InitializeData
 
-    await InitializeData().init_db()
-    logger.info(f"✅ {settings.DATABASE_TYPE} 连接初始化完成")
-    from app.common.http import http_clients
-    await http_clients.start(async_engine)
-    await init_agno_tables()
-    logger.info("✅ AI 会话表 初始化完成")
-    await redis_connect(app, status=True)
-    logger.info("✅ Redis 连接初始化完成")
-    await ParamsService.init_cache(redis=app.state.redis)
-    logger.info("✅ Redis系统参数 初始化完成")
-    await DictDataService.init_cache(redis=app.state.redis)
-    logger.info("✅ Redis数据字典 初始化完成")
-    await SchedulerUtil.init_scheduler(redis=app.state.redis)
-    logger.info("✅ 定时任务调度器 初始化完成")
-
-    console_start(
-        host=settings.SERVER_HOST,
-        port=settings.SERVER_PORT,
-        reload=settings.DEBUG,
-        database_type=settings.DATABASE_TYPE,
-        database_ready=True,
-        redis_ready=True,
-        scheduler_ready=SchedulerUtil.is_scheduler_ready(),
-    )
-
-    yield
-
     try:
-        await SchedulerUtil.shutdown(wait=True)
-        logger.info("✅ 定时任务调度器已关闭")
-        await http_clients.close()
-        await redis_connect(app, status=False)
-        logger.info("✅ redis 连接已关闭")
-        await async_engine.dispose()
-        logger.info(f"✅ {settings.DATABASE_TYPE} 连接已关闭")
-    except Exception as e:
-        logger.error("❌ 应用关闭过程中发生错误: {}", e)
-        raise SystemExit(1)
+        await InitializeData().init_db()
+        logger.info(f"✅ {settings.DATABASE_TYPE} 连接初始化完成")
+        from app.modules.system.log.storage import initialize as initialize_audit_logs
+
+        await initialize_audit_logs(databases.engine("logs"))
+        await http_clients.start(databases.engine("logs"))
+        await init_agno_tables()
+        logger.info("✅ AI 会话表 初始化完成")
+        await redis_connect(app, status=True)
+        logger.info("✅ Redis 连接初始化完成")
+        await ParamsService.init_cache(redis=app.state.redis)
+        logger.info("✅ Redis系统参数 初始化完成")
+        await DictDataService.init_cache(redis=app.state.redis)
+        logger.info("✅ Redis数据字典 初始化完成")
+        await SchedulerUtil.init_scheduler(redis=app.state.redis)
+        logger.info("✅ 定时任务调度器 初始化完成")
+
+        console_start(
+            host=settings.SERVER_HOST,
+            port=settings.SERVER_PORT,
+            reload=settings.DEBUG,
+            database_type=settings.DATABASE_TYPE,
+            database_ready=True,
+            redis_ready=True,
+            scheduler_ready=SchedulerUtil.is_scheduler_ready(),
+        )
+
+        yield
     finally:
-        console_end()
+        try:
+            await SchedulerUtil.shutdown(wait=True)
+        finally:
+            try:
+                await http_clients.close()
+            finally:
+                try:
+                    if hasattr(app.state, "redis"):
+                        await redis_connect(app, status=False)
+                finally:
+                    await databases.dispose()
+                    console_end()
 
 
 def register_middlewares(app: FastAPI) -> None:
@@ -83,9 +86,11 @@ def register_exceptions(app: FastAPI) -> None:
 
 def register_routers(app: FastAPI) -> None:
     from app.api.v1.routers import api_v1
+
     app.include_router(api_v1)
 
     from app.core.discover import dynamic_router
+
     dynamic_router.init_app(app)
 
 

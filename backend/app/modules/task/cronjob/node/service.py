@@ -11,6 +11,7 @@ from croniter import croniter
 from sqlalchemy import false, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.datetime_utils import BEIJING, format_datetime, parse_beijing
 from app.common.dict_values import EnableStatus
 from app.core.ap_scheduler import SchedulerUtil, scheduler
 from app.core.base_schema import AuthSchema, PageResultSchema
@@ -179,7 +180,7 @@ class NodeService:
             node_id = str(item.id) if item.id is not None else ""
             job = jobs.get(node_id)
             if job:
-                item.next_run_time = str(job.next_run_time) if getattr(job, "next_run_time", None) else None
+                item.next_run_time = format_datetime(job.next_run_time) if getattr(job, "next_run_time", None) else None
 
             # 可调度状态（t15）：区分「已启用且可执行」与「已启用但当前不会执行」，
             # 并把后者以 WARN 打出（带节点标识），避免升级/开关调整后的静默失效
@@ -193,7 +194,7 @@ class NodeService:
             stmt = select(JobModel).where(JobModel.job_id == node_id, JobModel.is_deleted == false()).order_by(JobModel.created_time.desc()).limit(1)
             row = (await self.db.execute(stmt)).scalars().first()
             if row:
-                item.last_run_time = row.created_time.isoformat() if row.created_time else None
+                item.last_run_time = format_datetime(row.created_time) if row.created_time else None
                 item.last_run_status = row.status
 
 
@@ -242,6 +243,8 @@ def _build_job_trigger(
     end_date: str | None,
 ) -> Any:
     """依据节点持久化计划构造 APScheduler Trigger，非法参数抛 ValueError。"""
+    start_date = parse_beijing(start_date) if start_date else None
+    end_date = parse_beijing(end_date) if end_date else None
     if trigger == "cron":
         cron_expr = (trigger_args or "").strip()
         fields = cron_expr.split()
@@ -294,7 +297,7 @@ def _build_job_trigger(
             datetime_validator(date_str)
         except Exception:
             raise ValueError("date触发时间必须为 YYYY-MM-DD HH:MM:SS")
-        return DateTrigger(run_date=date_str, timezone="Asia/Shanghai")
+        return DateTrigger(run_date=parse_beijing(date_str), timezone="Asia/Shanghai")
     raise ValueError(f"不支持的触发方式: {trigger}")
 
 
@@ -411,7 +414,7 @@ def run_node_once(node: NodeModel) -> str:
         raise ValueError("任务代码块不能为空")
     # 手动执行同样按可调度性判定：builtin 引用可直接执行；原始代码块在开关关闭时给出替代写法
     SchedulerUtil.require_schedulable(node.func)
-    temp_job_id = f"{node.id}{_MANUAL_JOB_PREFIX}{datetime.now():%Y%m%d%H%M%S}"
-    trigger = DateTrigger(run_date=datetime.now() + timedelta(seconds=0.1), timezone="Asia/Shanghai")
+    temp_job_id = f"{node.id}{_MANUAL_JOB_PREFIX}{datetime.now(BEIJING):%Y%m%d%H%M%S}"
+    trigger = DateTrigger(run_date=datetime.now(BEIJING) + timedelta(seconds=0.1), timezone="Asia/Shanghai")
     _add_job_with_trigger(node, trigger, job_id_override=temp_job_id, name_suffix=" - 手动执行")
     return temp_job_id

@@ -3,7 +3,7 @@ import os
 import socket
 import ssl
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -180,7 +180,7 @@ class FtpStorageAdapter(BaseStorageAdapter):
                 raw_mtime = facts.get("modify")
                 if raw_mtime:
                     try:
-                        modified_time = datetime.strptime(raw_mtime, "%Y%m%d%H%M%S")
+                        modified_time = datetime.strptime(raw_mtime, "%Y%m%d%H%M%S").replace(tzinfo=UTC)
                     except ValueError:
                         modified_time = None
                 result.append(

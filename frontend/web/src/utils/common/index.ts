@@ -15,6 +15,7 @@
 import { reactive, toRefs } from "vue";
 import { tryOnMounted, tryOnUnmounted } from "@vueuse/core";
 import dayjs from "dayjs";
+import { beijingTime, formatDateTime } from "../dateTime";
 import { ElMessage } from "element-plus";
 
 /**
@@ -31,8 +32,7 @@ import { ElMessage } from "element-plus";
  * ```
  */
 export function greetings(): string {
-  const currentDate = new Date();
-  const hours = currentDate.getHours();
+  const hours = beijingTime().hour();
 
   if (hours >= 6 && hours < 8) {
     return "晨起披衣出草堂，轩窗已自喜微凉🌅！";
@@ -69,8 +69,8 @@ export function getRangeDate(
   startDate: string | number | Date,
   endDate: string | number | Date
 ): string[] {
-  const start = dayjs(startDate);
-  const end = dayjs(endDate);
+  const start = beijingTime(startDate);
+  const end = beijingTime(endDate);
   const dates: string[] = [];
 
   // 验证日期有效性
@@ -270,11 +270,11 @@ export function formatToDateTime(
   date?: dayjs.ConfigType,
   format: string = DATE_TIME_FORMAT
 ): string {
-  return dayjs(date).format(format);
+  return formatDateTime(date, format);
 }
 
 export function formatToDate(date?: dayjs.ConfigType, format: string = DATE_FORMAT): string {
-  return dayjs(date).format(format);
+  return formatDateTime(date, format);
 }
 
 export function formatToTime(time?: dayjs.ConfigType, format: string = "HH:mm:ss"): string {
@@ -296,7 +296,7 @@ export const useNow = (immediate: boolean = true) => {
   });
 
   const update = () => {
-    const now = dayjs();
+    const now = beijingTime();
 
     const h = now.format("HH");
     const m = now.format("mm");

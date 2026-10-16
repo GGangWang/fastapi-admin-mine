@@ -1,6 +1,6 @@
 import os
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.core.exceptions import CustomException
 from app.core.logger import logger
@@ -86,7 +86,7 @@ class LocalStorageAdapter(BaseStorageAdapter):
                     key=key,
                     is_dir=is_dir,
                     size=None if is_dir else stat.st_size,
-                    modified_time=datetime.fromtimestamp(stat.st_mtime),
+                    modified_time=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
                 )
             )
         return result

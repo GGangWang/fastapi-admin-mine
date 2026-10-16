@@ -101,14 +101,23 @@ export default ({ mode }: { mode: string }) => {
         },
         output: {
           manualChunks(id) {
+            // CommonJS 运行时由多个图引擎共用，不能被自动吞入 G6 分包。
+            if (id.includes("commonjsHelpers")) return "commonjs-runtime";
             if (!id.includes("node_modules")) return;
+            const normalizedId = id.replaceAll("\\", "/");
+            if (
+              normalizedId.includes("/node_modules/@antv/") ||
+              /\/node_modules\/ml-(matrix|array-[^/]+)\//.test(normalizedId)
+            )
+              return "g6";
             // 针对大型库进行单独拆分
             if (id.includes("echarts") || id.includes("zrender")) return "echarts";
             if (id.includes("element-plus")) return "element-plus";
             if (id.includes("@wangeditor")) return "wangeditor";
             if (id.includes("codemirror")) return "codemirror";
             if (id.includes("exceljs")) return "exceljs";
-            if (id.includes("@vue-flow") || id.includes("dagre")) return "vue-flow";
+            if (id.includes("@vue-flow") || /[/\\]node_modules[/\\]dagre[/\\]/.test(id))
+              return "vue-flow";
             if (id.includes("highlight.js") || id.includes("highlightjs")) return "highlight";
             if (id.includes("xgplayer")) return "xgplayer";
             if (id.includes("markdown-it")) return "markdown";

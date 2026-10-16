@@ -10,6 +10,7 @@ from agno.db.postgres import AsyncPostgresDb
 from agno.db.sqlite import AsyncSqliteDb
 from agno.session.team import TeamSession
 
+from app.common.database_types import is_postgres_compatible
 from app.common.enums import RET
 from app.config.setting import settings
 from app.core.base_schema import AuthSchema
@@ -38,7 +39,7 @@ def _get_agno_db() -> Any:
                 db_uri = settings.ASYNC_DB_URI
                 if db_type == "mysql":
                     _db_instance = AsyncMySQLDb(db_url=db_uri, db_schema=settings.DATABASE_NAME, create_schema=False)
-                elif db_type == "postgres":
+                elif is_postgres_compatible(db_type):
                     _db_instance = AsyncPostgresDb(db_url=db_uri, db_schema="public", create_schema=False)
                 elif db_type == "sqlite":
                     _db_instance = AsyncSqliteDb(db_file=db_uri.replace("sqlite+aiosqlite:///", ""))

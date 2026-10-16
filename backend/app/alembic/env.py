@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.config.path_conf import ALEMBIC_VERSION_DIR
 from app.config.setting import settings
 from app.core.base_model import MappedBase
+from app.core.event_loop import database_event_loop
 from app.core.logger import logger
 from app.utils.import_util import ImportUtil
 
@@ -103,7 +104,8 @@ def run_migrations_online() -> None:
         context.run_migrations()
         connection.commit()
 
-    asyncio.run(run_async_migrations())
+    with asyncio.Runner(loop_factory=database_event_loop) as runner:
+        runner.run(run_async_migrations())
 
 
 if context.is_offline_mode():

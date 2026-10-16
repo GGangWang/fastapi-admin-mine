@@ -119,7 +119,7 @@ class AiModelConfigItemSchema(AiModelConfigSchema):
     """带 ID 的模型配置项（存储与返回）"""
 
     id: str = Field(..., min_length=1, max_length=64, description="配置项唯一 ID")
-    created_time: str | None = Field(None, description="创建时间（ISO 字符串）")
+    created_time: str | None = Field(None, description="创建时间（北京时间 YYYY-MM-DD HH:mm:ss）")
 
 
 class AiModelConfigListResponse(BaseModel):

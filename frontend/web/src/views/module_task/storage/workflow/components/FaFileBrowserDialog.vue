@@ -82,6 +82,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDateTime } from "@/utils/dateTime";
 import { Document, Folder, Refresh } from "@element-plus/icons-vue";
 import StorageAPI, { type StorageObject } from "@/api/module_storage/browse";
 
@@ -146,11 +147,7 @@ function navTo(path: string) {
 }
 
 function formatTime(mtime?: string) {
-  if (!mtime) return "";
-  const d = new Date(mtime);
-  if (Number.isNaN(d.getTime())) return mtime;
-  const pad = (x: number) => String(x).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  return mtime ? formatDateTime(mtime) : "—";
 }
 
 function formatSize(size?: number) {

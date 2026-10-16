@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from sqlalchemy import Inspector, inspect, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.database_types import is_postgres_compatible
 from app.config.setting import settings
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
@@ -230,7 +231,7 @@ class GenTableCRUD(CRUDBase[GenTableModel, GenTableSchema, GenTableSchema]):
             return items, total
 
         # PostgreSQL
-        if db_type in {"postgresql", "postgres"}:
+        if is_postgres_compatible(db_type):
             # pg_description 需要通过 objsubid=0 获取 table comment
             where_sql = "WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND c.relkind = 'r'"
             params = {"offset": offset, "limit": limit}

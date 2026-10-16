@@ -50,7 +50,8 @@ docker/
    | 变量 | 必填 | 默认值 | 说明 |
    |------|------|--------|------|
    | `MYSQL_ROOT_PASSWORD` | 是 | - | MySQL root 密码 |
-   | `MYSQL_DATABASE` | 否 | `ResNexus` | 数据库名 |
+   | `MYSQL_DATABASE` | 否 | `res-nexus` | 主数据库名 |
+   | `MYSQL_LOG_DATABASE` | 否 | `res-nexus-log` | 独立日志数据库名 |
    | `MYSQL_USER` | 否 | `ResNexus` | 数据库用户 |
    | `MYSQL_PASSWORD` | 是 | - | 数据库密码 |
    | `REDIS_PASSWORD` | 是 | - | Redis 密码 |
@@ -219,3 +220,7 @@ docker compose logs -f [服务名]
 ```bash
 ./deploy.sh    # 自动拉取最新代码 → 构建新镜像 → 重启容器
 ```
+
+首次初始化 MySQL 时会创建主库和日志库，并授予应用用户两个库的权限。已有 MySQL 数据卷不会重新执行初始化脚本，需要先人工创建日志库并授权，再更新配置。
+
+金仓 PostgreSQL 兼容实例可通过 `docker build --build-arg DB=kingbase -f docker/backend/Dockerfile .` 安装 psycopg 3 驱动；使用外部金仓和 Redis，详见 [金仓说明](../backend/docs/kingbase.md)。现有 Compose 的 MySQL 服务不能替代金仓实例。当前兼容性待实机验证。

@@ -1,23 +1,19 @@
 """Versioned physical monthly HTTP log tables (not ORM application tables)."""
 
 import calendar
-import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import BigInteger, Column, DateTime, Float, Index, Integer, MetaData, String, Table, Text, insert, select, update
 from sqlalchemy.dialects.mysql import LONGTEXT
 
+from app.common.log_month import prepare_month as prepare_log_month
+from app.common.log_month import validate_month
+
 TZ = ZoneInfo("Asia/Shanghai")
 metadata = MetaData()
-months = Table("sys_http_log_month", metadata, Column("month", String(6), primary_key=True), Column("version", Integer, nullable=False))
-
-
-def validate_month(month: str) -> str:
-    if not re.fullmatch(r"[0-9]{6}", month):
-        raise ValueError("日志月份必须是 YYYYMM")
-    datetime.strptime(month, "%Y%m")
-    return month
+# Historical Alembic revisions import these legacy symbols. Runtime uses log_month.
+months = Table("sys_http_log_month", MetaData(), Column("month", String(6), primary_key=True), Column("version", Integer, nullable=False))
 
 
 def month_table(month: str) -> Table:
@@ -102,7 +98,7 @@ def initial_months():
 
 async def prepare(engine, month):
     async with engine.begin() as connection:
-        await connection.run_sync(lambda conn: prepare_locked(conn, month))
+        await connection.run_sync(lambda conn: prepare_log_month(conn, "http", month, month_table(month)))
 
 
 async def persist(engine, record, bodies):

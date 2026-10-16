@@ -2,7 +2,7 @@
 <template>
   <div class="fa-full-height">
     <ElTabs v-model="activeTab" class="fa-tabs-fill">
-      <ElTabPane label="操作日志" name="operation">
+      <ElTabPane v-if="checkPerm('module_system:log:query')" label="操作日志" name="operation">
         <FaSearchBar
           v-show="opShowSearchBar"
           ref="opSearchBarRef"
@@ -19,7 +19,24 @@
           :audit-item-options="{ showCreatedBy: false, showUpdatedBy: false }"
           @search="handleOpSearch"
           @reset="onOpResetSearch"
-        />
+        >
+          <template #month>
+            <ElSelect
+              v-model="opMonth"
+              :disabled="opLoading || opBatchDeleting || opDialogVisible.visible || opExportVisible"
+              :clearable="false"
+              style="width: 100%"
+              @change="changeOpMonth"
+            >
+              <ElOption
+                v-for="month in opMonths"
+                :key="month"
+                :value="month"
+                :label="`${month.slice(0, 4)}-${month.slice(4)}`"
+              />
+            </ElSelect>
+          </template>
+        </FaSearchBar>
 
         <ElCard class="fa-table-card" :style="{ 'margin-top': opShowSearchBar ? '12px' : '0' }">
           <FaTableHeader
@@ -102,7 +119,7 @@
         />
       </ElTabPane>
 
-      <ElTabPane label="登录日志" name="login">
+      <ElTabPane v-if="checkPerm('module_system:login_log:query')" label="登录日志" name="login">
         <FaSearchBar
           v-show="loginShowSearchBar"
           ref="loginSearchBarRef"
@@ -119,7 +136,24 @@
           :audit-item-options="{ showCreatedBy: false, showUpdatedBy: false }"
           @search="handleLoginSearch"
           @reset="onLoginResetSearch"
-        />
+        >
+          <template #month>
+            <ElSelect
+              v-model="loginMonth"
+              :disabled="loginLoading || loginBatchDeleting || loginDialogVisible.visible"
+              :clearable="false"
+              style="width: 100%"
+              @change="changeLoginMonth"
+            >
+              <ElOption
+                v-for="month in loginMonths"
+                :key="month"
+                :value="month"
+                :label="`${month.slice(0, 4)}-${month.slice(4)}`"
+              />
+            </ElSelect>
+          </template>
+        </FaSearchBar>
 
         <ElCard class="fa-table-card" :style="{ 'margin-top': loginShowSearchBar ? '12px' : '0' }">
           <FaTableHeader
@@ -174,11 +208,23 @@
           </FaDescriptions>
         </FaDialog>
       </ElTabPane>
+      <ElTabPane
+        v-if="checkPerm('system:http_log:query')"
+        :label="t('auditLog.httpTab')"
+        name="http"
+        lazy
+      >
+        <HttpLogPanel v-if="activeTab === 'http'" />
+      </ElTabPane>
     </ElTabs>
   </div>
 </template>
 
 <script setup lang="ts">
+import HttpLogPanel from "@/views/module_system/http_log/index.vue";
+import { formatDateTime as formatLogTime, dateTimeFormValue } from "@/utils/dateTime";
+import { checkPerm } from "@/utils/checkPerm";
+import { useI18n } from "vue-i18n";
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([DictTypeEnum.SYS_OPERATION_STATUS, DictTypeEnum.SYS_LOGIN_STATUS]);
@@ -212,9 +258,48 @@ defineOptions({
   inheritAttrs: false,
 });
 
-const activeTab = ref<"operation" | "login">("operation");
+const { t } = useI18n();
+const currentMonth = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+  })
+    .format(new Date())
+    .replace(/[^0-9]/g, "");
+const opMonth = ref(currentMonth());
+const loginMonth = ref(currentMonth());
+const opMonths = ref<string[]>([opMonth.value]);
+const loginMonths = ref<string[]>([loginMonth.value]);
+
+onMounted(async () => {
+  const results = await Promise.allSettled([
+    checkPerm("module_system:log:query") ? OperationLogAPI.months() : Promise.resolve(null),
+    checkPerm("module_system:login_log:query") ? LoginLogAPI.months() : Promise.resolve(null),
+  ]);
+  if (results[0].status === "fulfilled")
+    opMonths.value = [...new Set([currentMonth(), ...(results[0].value?.data.data ?? [])])]
+      .sort()
+      .reverse();
+  if (results[1].status === "fulfilled")
+    loginMonths.value = [...new Set([currentMonth(), ...(results[1].value?.data.data ?? [])])]
+      .sort()
+      .reverse();
+});
+
+const activeTab = ref<"operation" | "login" | "http">(
+  checkPerm("module_system:log:query")
+    ? "operation"
+    : checkPerm("module_system:login_log:query")
+      ? "login"
+      : "http"
+);
 
 function handleIpSearch(ip: string) {
+  if (opMonth.value !== loginMonth.value) {
+    opMonth.value = loginMonth.value;
+    void changeOpMonth();
+  }
   activeTab.value = "operation";
   opSearchForm.value.request_ip = ip;
   opReplaceSearchParams(buildOpReplaceParams(opSearchForm.value));
@@ -242,6 +327,13 @@ const opSearchBarRules: Record<string, unknown> = {};
 
 const opSearchItems = computed<SearchFormItem[]>(() => [
   {
+    key: "month",
+    label: t("auditLog.month"),
+    type: "select",
+    span: 6,
+    props: { clearable: false },
+  },
+  {
     label: "请求路径",
     key: "request_path",
     type: "input",
@@ -261,12 +353,18 @@ const opSearchItems = computed<SearchFormItem[]>(() => [
 
 function buildOpReplaceParams(p: OpSearchForm): Record<string, unknown> {
   return {
+    month: opMonth.value,
+    order_by: JSON.stringify([{ created_time: "desc" }, { id: "desc" }]),
     request_path: p.request_path,
     request_ip: p.request_ip,
     created_time:
-      Array.isArray(p.created_time) && p.created_time.length === 2 ? p.created_time : undefined,
+      Array.isArray(p.created_time) && p.created_time.length === 2
+        ? p.created_time.map(dateTimeFormValue)
+        : undefined,
     updated_time:
-      Array.isArray(p.updated_time) && p.updated_time.length === 2 ? p.updated_time : undefined,
+      Array.isArray(p.updated_time) && p.updated_time.length === 2
+        ? p.updated_time.map(dateTimeFormValue)
+        : undefined,
   };
 }
 
@@ -287,7 +385,6 @@ const {
   searchParams: opSearchParams,
   getData: opGetData,
   replaceSearchParams: opReplaceSearchParams,
-  resetSearchParams: opResetSearchParams,
   handleSizeChange: opHandleSizeChange,
   handleCurrentChange: opHandleCurrentChange,
   refreshData: opRefreshData,
@@ -295,7 +392,13 @@ const {
 } = useTable({
   core: {
     apiFn: OperationLogAPI.list,
-    apiParams: { page_no: 1, page_size: 10 },
+    immediate: checkPerm("module_system:log:query"),
+    apiParams: {
+      page_no: 1,
+      page_size: 10,
+      month: opMonth.value,
+      order_by: JSON.stringify([{ created_time: "desc" }, { id: "desc" }]),
+    },
     columnsFactory: (): ColumnOption<OperationLogTable>[] => [
       { type: "selection", width: 48, fixed: "left" },
       { type: "globalIndex", width: 56, label: "序号" },
@@ -331,6 +434,7 @@ const {
       { prop: "description", label: "描述", minWidth: 120, showOverflowTooltip: true },
       {
         prop: "created_time",
+        formatter: (row) => formatLogTime(row.created_time),
         label: "创建时间",
         width: 168,
         sortable: true,
@@ -363,6 +467,7 @@ const opExportContentConfig = computed(() => ({
       cleanEmptyArrayParams({
         ...(opExportQueryParams.value as unknown as Record<string, unknown>),
         ...params,
+        month: opMonth.value,
       }) as OperationLogPageQuery
     );
     return res.data as Blob;
@@ -399,7 +504,8 @@ function onOpResetSearch() {
     created_time: undefined,
     updated_time: undefined,
   };
-  void opResetSearchParams();
+  opReplaceSearchParams(buildOpReplaceParams(opSearchForm.value));
+  void opGetData();
 }
 
 async function handleOpCloseDialog() {
@@ -407,17 +513,19 @@ async function handleOpCloseDialog() {
   Object.assign(opFormData.value, {});
 }
 
-async function handleOpOpenDetail(id: number) {
+async function handleOpOpenDetail(id: string) {
   opDialogVisible.title = "操作日志详情";
-  const response = await OperationLogAPI.detail(id);
+  const response = await OperationLogAPI.detail(id, opMonth.value);
   Object.assign(opFormData.value, response.data.data ?? {});
+  opFormData.value.created_time = formatLogTime(opFormData.value.created_time);
   opDialogVisible.visible = true;
 }
 
-async function deleteOpRow(id: number, name: string) {
+async function deleteOpRow(id: string, name: string) {
+  const month = opMonth.value;
   try {
     await confirmDelete(`确定删除「${name}」吗？`);
-    await OperationLogAPI.delete([id]);
+    await OperationLogAPI.delete([id], month);
     opTableRef.value?.elTableRef?.clearSelection();
     await opRefreshRemove();
   } catch {
@@ -457,6 +565,7 @@ function formatOpActionCell(row: OperationLogTable) {
 }
 
 async function handleOpBatchDelete() {
+  const month = opMonth.value;
   const ids = opSelectedIds.value;
   if (ids.length === 0) return;
   try {
@@ -465,7 +574,7 @@ async function handleOpBatchDelete() {
       opSelectedRows.value.map((r) => String(r.description ?? r.id))
     );
     opBatchDeleting.value = true;
-    await OperationLogAPI.delete(ids);
+    await OperationLogAPI.delete(ids, month);
     opTableRef.value?.elTableRef?.clearSelection();
     await opRefreshRemove();
   } catch {
@@ -497,6 +606,13 @@ const loginSearchBarRules: Record<string, unknown> = {};
 const LOGIN_STATUS_OPTIONS = pageDict.options(DictTypeEnum.SYS_LOGIN_STATUS, "number");
 
 const loginSearchItems = computed<SearchFormItem[]>(() => [
+  {
+    key: "month",
+    label: t("auditLog.month"),
+    type: "select",
+    span: 6,
+    props: { clearable: false },
+  },
   {
     label: "用户名",
     key: "username",
@@ -531,15 +647,21 @@ const loginSearchItems = computed<SearchFormItem[]>(() => [
 
 function buildLoginReplaceParams(p: LoginSearchForm): Record<string, unknown> {
   return {
+    month: loginMonth.value,
+    order_by: JSON.stringify([{ created_time: "desc" }, { id: "desc" }]),
     username: p.username || undefined,
     status:
       p.status !== undefined && p.status !== null && p.status !== ("" as unknown as number)
         ? Number(p.status)
         : undefined,
     created_time:
-      Array.isArray(p.created_time) && p.created_time.length === 2 ? p.created_time : undefined,
+      Array.isArray(p.created_time) && p.created_time.length === 2
+        ? p.created_time.map(dateTimeFormValue)
+        : undefined,
     updated_time:
-      Array.isArray(p.updated_time) && p.updated_time.length === 2 ? p.updated_time : undefined,
+      Array.isArray(p.updated_time) && p.updated_time.length === 2
+        ? p.updated_time.map(dateTimeFormValue)
+        : undefined,
   };
 }
 
@@ -558,7 +680,6 @@ const {
   pagination: loginPagination,
   getData: loginGetData,
   replaceSearchParams: loginReplaceSearchParams,
-  resetSearchParams: loginResetSearchParams,
   handleSizeChange: loginHandleSizeChange,
   handleCurrentChange: loginHandleCurrentChange,
   refreshData: loginRefreshData,
@@ -566,7 +687,13 @@ const {
 } = useTable({
   core: {
     apiFn: LoginLogAPI.list,
-    apiParams: { page_no: 1, page_size: 10 },
+    immediate: checkPerm("module_system:login_log:query"),
+    apiParams: {
+      page_no: 1,
+      page_size: 10,
+      month: loginMonth.value,
+      order_by: JSON.stringify([{ created_time: "desc" }, { id: "desc" }]),
+    },
     columnsFactory: resolveStatusColumns<LoginLogTable>(() => [
       { type: "selection", width: 48, fixed: "left" },
       { type: "globalIndex", width: 56, label: "序号" },
@@ -603,6 +730,7 @@ const {
       { prop: "msg", label: "提示消息", minWidth: 200, showOverflowTooltip: true },
       {
         prop: "created_time",
+        formatter: (row) => formatLogTime(row.created_time),
         label: "登录时间",
         width: 168,
         sortable: true,
@@ -648,13 +776,15 @@ function onLoginResetSearch() {
     created_time: undefined,
     updated_time: undefined,
   };
-  void loginResetSearchParams();
+  loginReplaceSearchParams(buildLoginReplaceParams(loginSearchForm.value));
+  void loginGetData();
 }
 
-async function handleLoginOpenDetail(id: number) {
+async function handleLoginOpenDetail(id: string) {
   loginDialogVisible.title = "登录日志详情";
-  const response = await LoginLogAPI.detail(id);
+  const response = await LoginLogAPI.detail(id, loginMonth.value);
   Object.assign(loginFormData.value, response.data.data ?? {});
+  loginFormData.value.created_time = formatLogTime(loginFormData.value.created_time);
   loginDialogVisible.visible = true;
 }
 
@@ -662,10 +792,11 @@ function handleLoginCloseDialog() {
   loginCloseDialog();
 }
 
-async function deleteLoginRow(id: number, name: string) {
+async function deleteLoginRow(id: string, name: string) {
+  const month = loginMonth.value;
   try {
     await confirmDelete(`确定删除「${name}」吗？`);
-    await LoginLogAPI.delete([id]);
+    await LoginLogAPI.delete([id], month);
     loginTableRef.value?.elTableRef?.clearSelection();
     await loginRefreshRemove();
   } catch {
@@ -705,6 +836,7 @@ function formatLoginActionCell(row: LoginLogTable) {
 }
 
 async function handleLoginBatchDelete() {
+  const month = loginMonth.value;
   const ids = loginSelectedIds.value;
   if (ids.length === 0) return;
   try {
@@ -715,7 +847,7 @@ async function handleLoginBatchDelete() {
         .map((r) => String(r.username ?? r.id))
     );
     loginBatchDeleting.value = true;
-    await LoginLogAPI.delete(ids);
+    await LoginLogAPI.delete(ids, month);
     loginTableRef.value?.elTableRef?.clearSelection();
     await loginRefreshRemove();
   } catch {
@@ -735,6 +867,26 @@ watch(activeTab, (tab) => {
     });
   }
 });
+
+async function changeOpMonth() {
+  opTableRef.value?.elTableRef?.clearSelection();
+  onOpTableSelectionChange([]);
+  opData.value = [];
+  opSearchForm.value.created_time = undefined;
+  opSearchForm.value.updated_time = undefined;
+  opReplaceSearchParams(buildOpReplaceParams(opSearchForm.value));
+  await opGetData();
+}
+
+async function changeLoginMonth() {
+  loginTableRef.value?.elTableRef?.clearSelection();
+  onLoginTableSelectionChange([]);
+  loginData.value = [];
+  loginSearchForm.value.created_time = undefined;
+  loginSearchForm.value.updated_time = undefined;
+  loginReplaceSearchParams(buildLoginReplaceParams(loginSearchForm.value));
+  await loginGetData();
+}
 
 // ==================== 通用 ====================
 

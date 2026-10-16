@@ -1,0 +1,3 @@
+# KingbaseES PostgreSQL compatibility mode (experimental; requires real-instance validation).
+# SQLAlchemy selects synchronous/asynchronous psycopg implementations automatically.
+psycopg[binary]==3.3.2

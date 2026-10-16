@@ -429,9 +429,10 @@ def pick_sqlalchemy_type(column_type: object, column_length: object = None, *, d
     返回:
     - str: 形如 ``String(64)`` / ``Numeric(10,2)`` / ``DateTime`` 的类型字符串。
     """
+    from app.common.database_types import sql_dialect
     from app.config.setting import settings  # 延迟导入避免模块级循环
 
-    dialect = (db_type or settings.DATABASE_TYPE or "").lower()
+    dialect = sql_dialect(db_type or settings.DATABASE_TYPE or "")
     base = column_type_base(column_type)
     params = extract_type_params(column_type, column_length)
     lowered = base.lower()

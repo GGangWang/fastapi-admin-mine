@@ -245,9 +245,9 @@
 </template>
 
 <script setup lang="ts">
+import { formatDateTime } from "@/utils/dateTime";
 import { computed, nextTick, ref, watch } from "vue";
 import cronParser from "cron-parser";
-import dayjs from "dayjs";
 
 interface FieldState {
   mode: string;
@@ -466,8 +466,9 @@ function calcNextRun(expr: string) {
     const parser = (cronParser as any).default ?? cronParser;
     const interval = parser.parse(expr, {
       currentDate: new Date(),
+      tz: "Asia/Shanghai",
     });
-    nextRun.value = dayjs(interval.next().toDate()).format("YYYY-MM-DD HH:mm:ss");
+    nextRun.value = formatDateTime(interval.next().toDate());
   } catch {
     nextRun.value = "无效表达式";
   }

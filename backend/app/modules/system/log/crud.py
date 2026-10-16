@@ -1,21 +1,32 @@
+from datetime import UTC, datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
 
-from .model import LoginLogModel, OperationLogModel
-from .schema import LoginLogCreateSchema, OperationLogCreateSchema
+from .storage import month_model, prepare, record_month
 
 
-class LoginLogCRUD(CRUDBase[LoginLogModel, LoginLogCreateSchema, None]):
-    """登录日志数据层"""
+class MonthlyLogCRUD(CRUDBase):
+    kind: str
 
-    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
-        super().__init__(model=LoginLogModel, auth=auth, db=db)
+    def __init__(self, auth: AuthSchema, db: AsyncSession, month: str) -> None:
+        self.month = month
+        super().__init__(model=month_model(self.kind, month), auth=auth, db=db)
+
+    async def create(self, data):
+        values = data.model_dump(exclude_none=True) if hasattr(data, "model_dump") else dict(data)
+        occurred = values.setdefault("created_time", datetime.now(UTC))
+        month = record_month(occurred)
+        await prepare(self.db.bind, self.kind, month)
+        self.model = month_model(self.kind, month)
+        return await super().create(values)
 
 
-class OperationLogCRUD(CRUDBase[OperationLogModel, OperationLogCreateSchema, None]):
-    """操作日志 CRUD"""
+class LoginLogCRUD(MonthlyLogCRUD):
+    kind = "login"
 
-    def __init__(self, auth: AuthSchema, db: AsyncSession) -> None:
-        super().__init__(model=OperationLogModel, auth=auth, db=db)
+
+class OperationLogCRUD(MonthlyLogCRUD):
+    kind = "operation"

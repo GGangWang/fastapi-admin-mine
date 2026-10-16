@@ -1,6 +1,7 @@
 import json
 import time
 from collections.abc import Callable, Coroutine
+from datetime import UTC, datetime
 from typing import Any, TypedDict
 
 from fastapi import Request, Response
@@ -8,7 +9,7 @@ from fastapi.routing import APIRoute
 from starlette.background import BackgroundTask
 
 from app.config.setting import settings
-from app.core.database import async_db_session
+from app.core.database import databases
 from app.core.logger import logger
 from app.utils.ip_local_util import get_client_ip
 
@@ -44,6 +45,7 @@ def _redact_sensitive(obj: Any) -> Any:
 class OperationLogRecord(TypedDict):
     """操作日志落库记录（字段与 OperationLogModel 对应，定义与消费同处）。"""
 
+    created_time: datetime
     username: str
     request_path: str
     request_method: str
@@ -57,11 +59,14 @@ class OperationLogRecord(TypedDict):
 
 async def _write_operation_log_async(log_data: OperationLogRecord) -> None:
     """落库操作日志（BackgroundTask 中执行；失败仅告警，不影响响应）。"""
-    from app.modules.system.log.model import OperationLogModel  # 延迟导入：core 导入期不依赖业务层（守卫不变式 3）
+    from app.modules.system.log.storage import month_model, prepare, record_month  # 延迟导入：core 导入期不依赖业务层（守卫不变式 3）
 
     try:
-        async with async_db_session() as session, session.begin():
-            session.add(OperationLogModel(**log_data))
+        occurred = log_data.get("created_time", datetime.now(UTC))
+        month = record_month(occurred)
+        await prepare(databases.engine("logs"), "operation", month)
+        async with databases.session("logs") as session:
+            session.add(month_model("operation", month)(**{**log_data, "created_time": occurred}))
     except Exception:
         logger.exception("操作日志写入失败: path={}", log_data.get("request_path"))
 
@@ -73,6 +78,7 @@ class OperationLogRoute(APIRoute):
         original_route_handler = super().get_route_handler()
 
         async def custom_route_handler(request: Request) -> Response:
+            occurred = datetime.now(UTC)
             start = time.perf_counter()
             response: Response = await original_route_handler(request)
 
@@ -116,6 +122,7 @@ class OperationLogRoute(APIRoute):
                     response_data = b"{}"
 
                 log_data: OperationLogRecord = {
+                    "created_time": occurred,
                     "username": str(getattr(getattr(request.state, "ctx", None), "user_username", None) or "unknown"),
                     "request_path": request.url.path,
                     "request_method": request.method,

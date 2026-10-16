@@ -1,3 +1,4 @@
+from app.common.database_types import is_postgres_compatible
 from app.config.setting import settings
 
 
@@ -112,10 +113,10 @@ class GenConstant:
     """
 
     # 数据库字符串类型
-    COLUMNTYPE_STR = ["character varying", "varchar", "character", "char"] if settings.DATABASE_TYPE == "postgres" else ["char", "varchar", "nvarchar", "varchar2"]
+    COLUMNTYPE_STR = ["character varying", "varchar", "character", "char"] if is_postgres_compatible(settings.DATABASE_TYPE) else ["char", "varchar", "nvarchar", "varchar2"]
 
     # 数据库文本类型
-    COLUMNTYPE_TEXT = ["text", "citext"] if settings.DATABASE_TYPE == "postgres" else ["tinytext", "text", "mediumtext", "longtext"]
+    COLUMNTYPE_TEXT = ["text", "citext"] if is_postgres_compatible(settings.DATABASE_TYPE) else ["tinytext", "text", "mediumtext", "longtext"]
 
     # 数据库时间类型
     COLUMNTYPE_TIME = (
@@ -129,14 +130,14 @@ class GenConstant:
             "timestamp without time zone",
             "interval",
         ]
-        if settings.DATABASE_TYPE == "postgres"
+        if is_postgres_compatible(settings.DATABASE_TYPE)
         else ["datetime", "time", "date", "timestamp"]
     )
 
     # 数据库字空间类型
     COLUMNTYPE_GEOMETRY = (
         ["point", "line", "lseg", "box", "path", "polygon", "circle"]
-        if settings.DATABASE_TYPE == "postgres"
+        if is_postgres_compatible(settings.DATABASE_TYPE)
         else [
             "geometry",
             "point",
@@ -311,7 +312,7 @@ class GenConstant:
             "oidvector": "ARRAY",
             "pg_node_tree": "Text",
         }
-        if settings.DATABASE_TYPE == "postgres"
+        if is_postgres_compatible(settings.DATABASE_TYPE)
         else {
             # 布尔语义仅 tinyint(1)，其余 tinyint 在 get_sqlalchemy_type 中映射为 SmallInteger
             "TINYINT": "SmallInteger",

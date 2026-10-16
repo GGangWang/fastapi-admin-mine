@@ -86,6 +86,11 @@ class NodeCreateSchema(BaseModel):
     @model_validator(mode="after")
     def _validate_dates(self):
         """跨字段校验：结束时间不得早于开始时间。"""
+        for value in (self.start_date, self.end_date):
+            if value:
+                datetime_validator(value)
+        if self.trigger == "date":
+            datetime_validator(self.trigger_args)
         if self.start_date and self.end_date:
             try:
                 start = datetime_validator(self.start_date)

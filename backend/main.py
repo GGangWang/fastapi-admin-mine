@@ -33,10 +33,12 @@ def run(
     from app.utils.banner import worship
     typer.secho(message=f"{worship()}", fg=typer.colors.GREEN)
     from app.config.setting import settings
+    from app.core.event_loop import requires_selector_loop
 
     uvicorn.run(
         app="app:create_app",
         factory=True,
+        loop="app.core.event_loop:database_event_loop" if requires_selector_loop() else "auto",
         host=settings.SERVER_HOST,
         port=settings.SERVER_PORT,
         reload=settings.DEBUG,
@@ -86,6 +88,44 @@ def upgrade(
     os.environ["ENVIRONMENT"] = env.value
     command.upgrade(config=alembic_cfg, revision="head")
     typer.echo(message="所有迁移已应用。")
+
+
+@resnexus_cli.command(name="migrate-audit-logs", help="停服后按月迁移历史登录/操作日志，保留原表；可重复执行")
+def migrate_audit_logs(
+    env: Annotated[EnvironmentEnum, typer.Option("--env")] = EnvironmentEnum.DEV,
+    batch_size: Annotated[int, typer.Option("--batch-size", min=1)] = 1000,
+) -> None:
+    import asyncio
+    import json
+    os.environ["ENVIRONMENT"] = env.value
+    from app.core.database import databases
+    from app.scripts.migrate_audit_logs import migrate
+
+    async def execute():
+        try:
+            return await migrate(databases.engine("logs"), batch_size)
+        finally:
+            await databases.dispose()
+
+    from app.core.event_loop import database_event_loop
+
+    with asyncio.Runner(loop_factory=database_event_loop) as runner:
+        typer.echo(json.dumps(runner.run(execute()), ensure_ascii=False))
+
+
+@resnexus_cli.command(name="upgrade-log-ids", help="停服后将日志库现有登录/操作日志主键升级为 VARCHAR(32)")
+def upgrade_log_ids(env: Annotated[EnvironmentEnum, typer.Option("--env")] = EnvironmentEnum.DEV):
+    import asyncio
+    import json
+    os.environ["ENVIRONMENT"] = env.value
+    from app.core.database import databases
+    from app.modules.system.log.upgrade import upgrade_ids
+    async def execute():
+        try:
+            return await upgrade_ids(databases.engine("logs"))
+        finally:
+            await databases.dispose()
+    typer.echo(json.dumps(asyncio.run(execute()), ensure_ascii=False))
 
 
 if __name__ == "__main__":

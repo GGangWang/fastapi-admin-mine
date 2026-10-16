@@ -12,7 +12,6 @@ import os
 import types
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from typing import Any, Literal, get_args, get_origin
 
 from pydantic import BaseModel, Field
@@ -21,6 +20,7 @@ from pydantic import BaseModel, Field
 from app.common.dict_values import StorageProtocol
 from app.core.exceptions import CustomException
 from app.core.logger import logger
+from app.core.validator import DateTimeStr
 from app.utils.crypto_util import CryptoUtil
 
 
@@ -128,7 +128,7 @@ class StorageObject(BaseModel):
     key: str = Field(description="相对存储真根的路径（path_prefix 仅作为普通目录层，不做剥离）")
     is_dir: bool = Field(default=False, description="是否目录")
     size: int | None = Field(default=None, description="大小（字节）")
-    modified_time: datetime | None = Field(default=None, description="修改时间")
+    modified_time: DateTimeStr | None = Field(default=None, description="修改时间")
 
 
 class StoragePage(BaseModel):

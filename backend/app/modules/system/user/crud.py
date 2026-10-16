@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.datetime_utils import BEIJING
 from app.core.base_crud import CRUDBase
 from app.core.base_schema import AuthSchema
 
@@ -37,7 +38,9 @@ class UserCRUD(CRUDBase[UserModel, UserCreateSchema, UserUpdateSchema]):
         user = await self.db.get(UserModel, id)
         if user is None:
             return None
-        user.last_login = datetime.now()
+        # Preserve historical Beijing wall-time storage for this specific field.
+        now = datetime.now(BEIJING)
+        user.last_login = now if self.db.get_bind().dialect.name == "postgresql" else now.replace(tzinfo=None)
         await self.db.flush()
         return user
 

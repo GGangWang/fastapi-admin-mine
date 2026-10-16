@@ -113,12 +113,16 @@ def test_single_month_and_utf8_body_paging(tmp_path):
             service = HttpLogService(db)
             rows = await service.page("202610")
             assert rows["total"] == 1 and "response_body" not in rows["items"][0]
+            assert rows["items"][0]["started_at"] == "2026-10-31 23:59:00"
+            assert (await service.page("202610", start_time="2026-10-31 23:00:00", end_time="2026-10-31 23:59:59"))["total"] == 1
+            with pytest.raises(Exception, match="时间格式无效"):
+                await service.page("202610", start_time="2026-10-31T15:00:00Z")
             first = await service.body("202610", "a" * 32, "response")
             second = await service.body("202610", "a" * 32, "response", first["next_offset"])
             assert first["text"] + second["text"] == text
             assert first["next_offset"] == 65535
             with pytest.raises(Exception, match="所选月份"):
-                await service.page("202610", start_time="2026-09-30T23:59:59")
+                await service.page("202610", start_time="2026-09-30 23:59:59")
             with pytest.raises(Exception, match="YYYYMM"):
                 await service.table("202610;DROP TABLE")
         await engine.dispose()
@@ -246,7 +250,8 @@ def test_monthly_migration_upgrade_downgrade(tmp_path, monkeypatch):
     with engine.begin() as conn:
         for table in (MenuModel.__table__, RoleModel.__table__, RoleMenusModel.__table__):
             table.create(conn)
-        conn.execute(insert(MenuModel.__table__).values(name="系统管理", route_name="System", type=1))
+        system_id = conn.execute(insert(MenuModel.__table__).values(name="系统管理", route_name="System", type=1)).inserted_primary_key[0]
+        log_id = conn.execute(insert(MenuModel.__table__).values(name="日志管理", route_name="Log", type=2, parent_id=system_id, permission="module_system:log:query")).inserted_primary_key[0]
         conn.execute(insert(RoleModel.__table__).values(name="超级管理员", code="SUPER_ADMIN"))
         source = Path(__file__).parents[1] / "app/alembic/versions/20261014_http_log.py"
         spec = importlib.util.spec_from_file_location("http_log_revision", source)
@@ -257,6 +262,8 @@ def test_monthly_migration_upgrade_downgrade(tmp_path, monkeypatch):
         revision.upgrade()
         menus = list(conn.execute(select(MenuModel.__table__.c.permission).where(MenuModel.__table__.c.permission.like("system:http_log:%"))).scalars())
         assert len(menus) == 4
+        http_parent_ids = conn.execute(select(MenuModel.__table__.c.parent_id).where(MenuModel.__table__.c.permission.like("system:http_log:%"))).scalars().all()
+        assert http_parent_ids == [log_id] * 4
         revision.downgrade()
         assert "sys_http_log_month" not in inspect(conn).get_table_names()
         assert conn.execute(select(MenuModel.__table__.c.id).where(MenuModel.__table__.c.route_name == "System")).first()
@@ -289,7 +296,7 @@ def test_log_api_permission_and_month_validation(tmp_path, monkeypatch):
         from fastapi import FastAPI
 
         from app.core.base_schema import AuthSchema
-        from app.core.dependencies import db_getter, get_current_user
+        from app.core.dependencies import db_getter, get_current_user, log_db_getter
         from app.core.exceptions import handle_exception
         from app.modules.system.http_log.controller import HttpLogRouter
 
@@ -312,7 +319,7 @@ def test_log_api_permission_and_month_validation(tmp_path, monkeypatch):
         app.state.redis = TicketRedis()
         import app.modules.system.http_log.controller as controller
 
-        monkeypatch.setattr(controller, "async_db_session", lambda: AsyncSession(engine))
+        monkeypatch.setattr(controller.databases, "factory", lambda name="default": lambda: AsyncSession(engine))
 
         async def db():
             async with AsyncSession(engine) as session:
@@ -322,6 +329,7 @@ def test_log_api_permission_and_month_validation(tmp_path, monkeypatch):
         auth.user.id = 100
         auth.user.is_superuser = False
         app.dependency_overrides[db_getter] = db
+        app.dependency_overrides[log_db_getter] = db
         app.dependency_overrides[get_current_user] = lambda: auth
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
             assert (await client.get("/http-log/months")).status_code == 403

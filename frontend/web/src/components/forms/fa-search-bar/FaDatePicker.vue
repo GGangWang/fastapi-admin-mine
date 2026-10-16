@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { beijingPickerDate } from "@/utils/dateTime";
 
 type DatePickerType =
   | "year"
@@ -88,46 +89,31 @@ const shortcuts = [
   {
     text: "近一天",
     value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24);
-      return [start, end];
+      return [beijingPickerDate(Date.now() - 3600 * 1000 * 24), beijingPickerDate()];
     },
   },
   {
     text: "近三天",
     value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 3);
-      return [start, end];
+      return [beijingPickerDate(Date.now() - 3600 * 1000 * 24 * 3), beijingPickerDate()];
     },
   },
   {
     text: "近一周",
     value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
-      return [start, end];
+      return [beijingPickerDate(Date.now() - 3600 * 1000 * 24 * 7), beijingPickerDate()];
     },
   },
   {
     text: "近一个月",
     value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 30);
-      return [start, end];
+      return [beijingPickerDate(Date.now() - 3600 * 1000 * 24 * 30), beijingPickerDate()];
     },
   },
   {
     text: "近三个月",
     value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 90);
-      return [start, end];
+      return [beijingPickerDate(Date.now() - 3600 * 1000 * 24 * 90), beijingPickerDate()];
     },
   },
 ];

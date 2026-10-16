@@ -21,6 +21,7 @@ from sqlglot.expressions import (
 )
 
 from app.common.constant import GenConstant
+from app.common.database_types import sql_dialect
 from app.common.dict_values import EnableStatus
 from app.common.enums import QueueEnum
 from app.config.path_conf import BASE_DIR
@@ -394,7 +395,7 @@ class GenTableService:
             raise CustomException(msg="SQL语句不能为空")
         try:
             # 解析SQL语句
-            sql_statements = sqlglot.parse(sql, dialect=settings.DATABASE_TYPE)
+            sql_statements = sqlglot.parse(sql, dialect=sql_dialect(settings.DATABASE_TYPE))
             if not sql_statements:
                 raise CustomException(msg="无法解析SQL语句，请检查SQL语法")
 
@@ -437,7 +438,7 @@ class GenTableService:
                 # 只执行白名单语句：Create / Comment /（受限）Alter
                 if not isinstance(sql_statement, (Create, Comment, Alter)):
                     continue
-                exc_sql = sql_statement.sql(dialect=settings.DATABASE_TYPE)
+                exc_sql = sql_statement.sql(dialect=sql_dialect(settings.DATABASE_TYPE))
                 logger.info(f"执行SQL语句: {exc_sql}")
 
                 # ALTER 仅允许添加外键约束，避免任意 ALTER 带来的破坏性

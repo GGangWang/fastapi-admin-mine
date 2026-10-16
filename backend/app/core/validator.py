@@ -2,9 +2,10 @@ import re
 from datetime import date, datetime, time
 from typing import Annotated, Any
 
-from pydantic import AfterValidator, PlainSerializer, WithJsonSchema
+from pydantic import AfterValidator, BeforeValidator, PlainSerializer, WithJsonSchema
 
-from app.common.constant import DATE_DISPLAY_FMT, DATETIME_DISPLAY_FMT, TIME_DISPLAY_FMT
+from app.common.constant import DATE_DISPLAY_FMT, TIME_DISPLAY_FMT
+from app.common.datetime_utils import BEIJING, DATETIME_PATTERN, beijing_stored_input, datetime_input, format_beijing_wall, format_datetime
 from app.common.enums import RET
 from app.config.setting import settings
 from app.core.exceptions import CustomException
@@ -14,13 +15,28 @@ from app.utils.password_util import PwdUtil
 # 自定义日期时间字符串类型
 DateTimeStr = Annotated[
     datetime,
-    AfterValidator(lambda x: datetime_validator(x)),
+    BeforeValidator(lambda x: datetime_validator(x)),
     PlainSerializer(
-        lambda x: x.strftime(DATETIME_DISPLAY_FMT) if isinstance(x, datetime) else str(x),
+        format_datetime,
         return_type=str,
         when_used="json",
     ),
-    WithJsonSchema({"type": "string"}, mode="serialization"),
+    WithJsonSchema({"type": "string", "pattern": DATETIME_PATTERN, "description": "北京时间 YYYY-MM-DD HH:mm:ss"}),
+]
+
+BeijingStoredDateTime = Annotated[
+    datetime,
+    BeforeValidator(beijing_stored_input),
+    PlainSerializer(format_datetime, return_type=str, when_used="json"),
+    WithJsonSchema({"type": "string", "pattern": DATETIME_PATTERN}),
+]
+
+# Explicit compatibility type for the legacy example business field only.
+BeijingWallTime = Annotated[
+    datetime,
+    BeforeValidator(lambda value: beijing_stored_input(value).astimezone(BEIJING).replace(tzinfo=None)),
+    PlainSerializer(format_beijing_wall, return_type=str, when_used="json"),
+    WithJsonSchema({"type": "string", "pattern": DATETIME_PATTERN}),
 ]
 
 # 自定义日期字符串类型
@@ -77,10 +93,7 @@ def datetime_validator(value: str | datetime) -> datetime:
     - CustomException: 日期格式无效时抛出。
     """
     try:
-        if isinstance(value, str):
-            return datetime.strptime(value, DATETIME_DISPLAY_FMT)
-        if isinstance(value, datetime):
-            return value
+        return datetime_input(value)
     except CustomException:
         raise
     except Exception as e:

@@ -8,7 +8,7 @@ from pydantic import (
 
 from app.common.dict_values import EnableStatus
 from app.core.base_schema import BaseQueryParam, BaseSchema, UserByQueryParam, UserBySchema
-from app.core.validator import DateStr, DateTimeStr, TimeStr
+from app.core.validator import BeijingStoredDateTime, BeijingWallTime, DateStr, TimeStr
 
 
 class DemoCreateSchema(BaseModel):
@@ -23,7 +23,7 @@ class DemoCreateSchema(BaseModel):
     bool_val: bool = Field(default=True, description="布尔型")
     date_val: DateStr | None = Field(default=None, description="日期")
     time_val: TimeStr | None = Field(default=None, description="时间")
-    datetime_val: DateTimeStr | None = Field(default=None, description="日期时间")
+    datetime_val: BeijingWallTime | None = Field(default=None, description="日期时间")
     text_val: str | None = Field(default=None, description="长文本")
     json_val: dict | None = Field(default=None, description="元数据(JSON格式)")
 
@@ -68,7 +68,7 @@ class DemoUpdateSchema(BaseModel):
     bool_val: bool | None = Field(default=None, description="布尔型")
     date_val: DateStr | None = Field(default=None, description="日期")
     time_val: TimeStr | None = Field(default=None, description="时间")
-    datetime_val: DateTimeStr | None = Field(default=None, description="日期时间")
+    datetime_val: BeijingWallTime | None = Field(default=None, description="日期时间")
     text_val: str | None = Field(default=None, description="长文本")
     json_val: dict | None = Field(default=None, description="元数据(JSON格式)")
 
@@ -77,6 +77,8 @@ class DemoOutSchema(DemoCreateSchema, BaseSchema, UserBySchema):
     """响应模型"""
 
     model_config = ConfigDict(from_attributes=True)
+    # This legacy business field was persisted directly from Beijing form values.
+    datetime_val: BeijingStoredDateTime | None = None
 
 
 class DemoQueryParam(BaseQueryParam, UserByQueryParam):

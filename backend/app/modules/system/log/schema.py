@@ -1,6 +1,8 @@
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.base_schema import BaseQueryParam, BaseSchema
+from app.core.base_schema import BaseQueryParam, BaseSchema, PaginationQueryParam
 
 ALLOWED_REQUEST_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
 
@@ -27,7 +29,22 @@ class LoginLogCreateSchema(BaseModel):
         return v
 
 
-class LoginLogOutSchema(LoginLogCreateSchema, BaseSchema):
+class LogOutSchema(BaseSchema):
+    id: str = Field(min_length=32, max_length=32)
+
+
+class LogPaginationQueryParam(PaginationQueryParam):
+    order_by: Any = Field(default=None, validate_default=True)
+
+    @field_validator("order_by")
+    @classmethod
+    def validate_order_by(cls, value):
+        if value is None:
+            return [{"created_time": "desc"}, {"id": "desc"}]
+        return PaginationQueryParam.validate_order_by(value)
+
+
+class LoginLogOutSchema(LoginLogCreateSchema, LogOutSchema):
     """登录日志响应"""
 
     model_config = ConfigDict(from_attributes=True)
@@ -54,7 +71,7 @@ class OperationLogQueryParam(BaseQueryParam):
     request_ip: str | None = Field(None, description="请求IP", json_schema_extra={"q": "eq"})
 
 
-class OperationLogOutSchema(BaseSchema):
+class OperationLogOutSchema(LogOutSchema):
     """操作日志响应模型"""
 
     model_config = ConfigDict(from_attributes=True)

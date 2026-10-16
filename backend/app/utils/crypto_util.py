@@ -16,7 +16,6 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
-from app.common.legacy_identifiers import LEGACY_KDF_INFO
 from app.config.setting import settings
 from app.core.logger import logger
 
@@ -50,7 +49,6 @@ class CryptoUtil:
             primaries = [settings.DATA_ENCRYPTION_KEY or settings.SECRET_KEY]
             primaries += [key.strip() for key in (settings.DATA_ENCRYPTION_OLD_KEYS or "").split(",") if key.strip()]
             fernets = [Fernet(cls._derive_key(secret)) for secret in primaries]
-            fernets.extend(Fernet(cls._derive_key(secret, LEGACY_KDF_INFO)) for secret in primaries)
             fernets.append(Fernet(cls._legacy_key(settings.SECRET_KEY)))
             cls._fernets = fernets
             cls._cache_signature = signature

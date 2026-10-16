@@ -4,11 +4,30 @@ from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import quote_plus
 
-from pydantic import model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import URL
 
 from app.common.enums import EnvironmentEnum
 from app.config.path_conf import ENV_DIR
+
+
+class DataSourceConfig(BaseModel):
+    """Named database connection; omitted URLs inherit the default server credentials."""
+
+    model_config = ConfigDict(extra="forbid")
+    database: str | None = None
+    async_url: SecretStr | None = None
+    sync_url: SecretStr | None = None
+    pool_size: int | None = Field(default=None, ge=1)
+    max_overflow: int | None = Field(default=None, ge=0)
+    pool_timeout: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def check_connection(self):
+        if not self.database and not self.async_url:
+            raise ValueError("数据源必须配置 database 或 async_url")
+        return self
 
 
 class Settings(BaseSettings):
@@ -98,12 +117,23 @@ class Settings(BaseSettings):
     EXPIRE_ON_COMMIT: bool = False  # 是否在提交时过期
 
     # MySQL/PostgreSQL数据库连接
-    DATABASE_TYPE: Literal["mysql", "postgres", "sqlite"] = "mysql"
+    DATABASE_TYPE: Literal["mysql", "postgres", "sqlite", "kingbase"] = "mysql"
     DATABASE_HOST: str = "localhost"
     DATABASE_PORT: int = 3306
     DATABASE_USER: str = "root"
     DATABASE_PASSWORD: str = ""
-    DATABASE_NAME: str = "resnexus"
+    DATABASE_NAME: str = "res-nexus"
+    DATASOURCES: dict[str, DataSourceConfig] = Field(default_factory=lambda: {"logs": DataSourceConfig(database="res-nexus-log")})
+
+    @model_validator(mode="after")
+    def check_datasources(self):
+        if "default" in self.DATASOURCES:
+            raise ValueError("default 数据源由 DATABASE_* 配置，不允许重复声明")
+        if "logs" not in self.DATASOURCES:
+            raise ValueError("必须配置独立的 logs 数据源")
+        if any(not name.strip() for name in self.DATASOURCES):
+            raise ValueError("数据源名称不能为空")
+        return self
 
     # ================================================= #
     # ******************** Redis配置 ******************* #
@@ -341,11 +371,15 @@ class Settings(BaseSettings):
 
     @property
     def ASYNC_DB_URI(self) -> str:
-        if self.DATABASE_TYPE not in ("mysql", "postgres", "sqlite"):
-            raise ValueError(f"数据库驱动不支持: {self.DATABASE_TYPE}, 异步数据库请选择 mysql、postgres、sqlite")
+        if self.DATABASE_TYPE not in ("mysql", "postgres", "sqlite", "kingbase"):
+            raise ValueError(f"数据库驱动不支持: {self.DATABASE_TYPE}, 异步数据库请选择 mysql、postgres、sqlite、kingbase")
         db_connect: str = ""
         if self.DATABASE_TYPE == "mysql":
             db_connect = f"mysql+aiomysql://{self.DATABASE_USER}:{quote_plus(self.DATABASE_PASSWORD)}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}?charset=utf8mb4"
+        elif self.DATABASE_TYPE == "kingbase":
+            db_connect = URL.create(
+                "postgresql+psycopg", username=self.DATABASE_USER, password=self.DATABASE_PASSWORD, host=self.DATABASE_HOST, port=self.DATABASE_PORT, database=self.DATABASE_NAME
+            ).render_as_string(hide_password=False)
         elif self.DATABASE_TYPE == "postgres":
             db_connect = f"postgresql+asyncpg://{self.DATABASE_USER}:{quote_plus(self.DATABASE_PASSWORD)}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
         else:
@@ -355,11 +389,15 @@ class Settings(BaseSettings):
 
     @property
     def DB_URI(self) -> str:
-        if self.DATABASE_TYPE not in ("mysql", "postgres", "sqlite"):
-            raise ValueError(f"数据库驱动不支持: {self.DATABASE_TYPE}, 同步数据库请选择 mysql、postgres、sqlite")
+        if self.DATABASE_TYPE not in ("mysql", "postgres", "sqlite", "kingbase"):
+            raise ValueError(f"数据库驱动不支持: {self.DATABASE_TYPE}, 同步数据库请选择 mysql、postgres、sqlite、kingbase")
         db_connect: str = ""
         if self.DATABASE_TYPE == "mysql":
             db_connect = f"mysql+pymysql://{self.DATABASE_USER}:{quote_plus(self.DATABASE_PASSWORD)}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}?charset=utf8mb4"
+        elif self.DATABASE_TYPE == "kingbase":
+            db_connect = URL.create(
+                "postgresql+psycopg", username=self.DATABASE_USER, password=self.DATABASE_PASSWORD, host=self.DATABASE_HOST, port=self.DATABASE_PORT, database=self.DATABASE_NAME
+            ).render_as_string(hide_password=False)
         elif self.DATABASE_TYPE == "postgres":
             db_connect = f"postgresql+psycopg://{self.DATABASE_USER}:{quote_plus(self.DATABASE_PASSWORD)}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
         else:
@@ -386,7 +424,7 @@ class Settings(BaseSettings):
                 404: {"description": "资源不存在"},
                 422: {"description": "请求参数验证错误"},
                 500: {"description": "服务器内部错误"},
-            }
+            },
         }
 
 

@@ -13,7 +13,7 @@ from pydantic import (
 from app.common.dict_values import EnableStatus
 from app.config.setting import settings
 from app.core.base_schema import BaseQueryParam, BaseSchema, CommonSchema, CoreUserSchema, UserByQueryParam, UserBySchema
-from app.core.validator import DateTimeStr, email_validator, mobile_validator, password_validator
+from app.core.validator import BeijingStoredDateTime, email_validator, mobile_validator, password_validator
 from app.modules.system.menu.schema import MenuTreeOutSchema
 from app.modules.system.role.schema import RoleOutSchema
 
@@ -232,7 +232,7 @@ class UserOutSchema(CoreUserSchema, BaseSchema, UserBySchema):
     position_ids: list[int] | None = Field(default=[], description="岗位ID列表")
     dept_name: str | None = Field(default=None, description="部门名称")
     is_superuser: bool = Field(default=False, description="是否超管")
-    last_login: DateTimeStr | None = Field(default=None, description="最后登录时间")
+    last_login: BeijingStoredDateTime | None = Field(default=None, description="最后登录时间")
 
 
 class CurrentUserOutSchema(UserOutSchema):

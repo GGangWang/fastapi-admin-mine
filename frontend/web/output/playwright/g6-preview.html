@@ -1,0 +1,15 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>G6 topology acceptance fixture</title><style>body{margin:0;background:var(--el-bg-color-page,#f8fafc);font-family:Arial,"Microsoft YaHei",sans-serif}</style></head><body><div id="app"></div><script type="module">
+import {createApp} from '/web/node_modules/.vite/deps/vue.js';
+import {createI18n} from '/web/node_modules/.vite/deps/vue-i18n.js';
+import ElementPlus from '/web/node_modules/.vite/deps/element-plus.js';
+import '/web/node_modules/element-plus/dist/index.css';
+import '/web/node_modules/element-plus/theme-chalk/dark/css-vars.css';
+import Page from '/web/src/views/module_demo/test_validation/index.vue';
+import zh from '/web/src/locales/langs/zh.json';
+import en from '/web/src/locales/langs/en.json';
+const i18n=createI18n({legacy:false,locale:'zh',messages:{zh,en}});
+const app=createApp(Page);app.use(i18n);app.use(ElementPlus);app.mount('#app');
+const controls=document.createElement('div');controls.style='position:fixed;right:8px;bottom:8px;z-index:9999;display:flex;gap:8px';
+const theme=document.createElement('button');theme.textContent='Toggle theme';theme.onclick=()=>document.documentElement.classList.toggle('dark');controls.append(theme);
+const language=document.createElement('button');language.textContent='English / 中文';language.onclick=()=>i18n.global.locale.value=i18n.global.locale.value==='zh'?'en':'zh';controls.append(language);document.body.append(controls);
+</script></body></html>

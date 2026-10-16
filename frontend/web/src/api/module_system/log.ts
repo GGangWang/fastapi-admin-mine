@@ -5,7 +5,10 @@ import { request } from "@utils";
 const OP_API = "/system/log/operation";
 
 const OperationLogAPI = {
-  list(query?: OperationLogPageQuery) {
+  months() {
+    return request<ApiResponse<string[]>>({ url: `${OP_API}/months`, method: "get" });
+  },
+  list(query: OperationLogPageQuery) {
     return request<ApiResponse<PageResult<OperationLogTable>>>({
       url: `${OP_API}/list`,
       method: "get",
@@ -13,24 +16,27 @@ const OperationLogAPI = {
     });
   },
 
-  detail(id: number) {
+  detail(id: string, month: string) {
     return request<ApiResponse<OperationLogTable>>({
       url: `${OP_API}/detail/${id}`,
+      params: { month },
       method: "get",
     });
   },
 
-  delete(body: number[]) {
+  delete(body: string[], month: string) {
     return request<ApiResponse>({
       url: `${OP_API}/delete`,
       method: "delete",
+      params: { month },
       data: body,
     });
   },
 
-  export(query?: OperationLogPageQuery) {
+  export(query: OperationLogPageQuery) {
     return request<Blob>({
       url: `${OP_API}/export`,
+      params: { month: query.month },
       method: "post",
       data: query,
       responseType: "blob",
@@ -41,6 +47,8 @@ const OperationLogAPI = {
 export default OperationLogAPI;
 
 export interface OperationLogPageQuery extends PageQuery, UserByQueryParams {
+  month: string;
+  order_by?: string;
   request_path?: string;
   request_method?: string;
   username?: string;
@@ -49,7 +57,7 @@ export interface OperationLogPageQuery extends PageQuery, UserByQueryParams {
 }
 
 export interface OperationLogTable {
-  id: number;
+  id: string;
   username: string;
   status?: number;
   description?: string;
@@ -68,7 +76,10 @@ export interface OperationLogTable {
 const LOGIN_API = "/system/log/login";
 
 export const LoginLogAPI = {
-  list(query?: LoginLogPageQuery) {
+  months() {
+    return request<ApiResponse<string[]>>({ url: `${LOGIN_API}/months`, method: "get" });
+  },
+  list(query: LoginLogPageQuery) {
     return request<ApiResponse<PageResult<LoginLogTable>>>({
       url: `${LOGIN_API}/list`,
       method: "get",
@@ -76,29 +87,33 @@ export const LoginLogAPI = {
     });
   },
 
-  detail(id: number) {
+  detail(id: string, month: string) {
     return request<ApiResponse<LoginLogTable>>({
       url: `${LOGIN_API}/detail/${id}`,
+      params: { month },
       method: "get",
     });
   },
 
-  delete(body: number[]) {
+  delete(body: string[], month: string) {
     return request<ApiResponse>({
       url: `${LOGIN_API}/delete`,
       method: "delete",
+      params: { month },
       data: body,
     });
   },
 };
 
 export interface LoginLogPageQuery extends PageQuery, UserByQueryParams {
+  month: string;
+  order_by?: string;
   username?: string;
   status?: number;
 }
 
 export interface LoginLogTable {
-  id: number;
+  id: string;
   username: string;
   status: number;
   login_ip?: string;

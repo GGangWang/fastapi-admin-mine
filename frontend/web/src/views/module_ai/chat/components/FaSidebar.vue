@@ -120,6 +120,7 @@
 </template>
 
 <script setup lang="ts">
+import { beijingTime, formatDateTime } from "@/utils/dateTime";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
@@ -176,9 +177,7 @@ const filteredSessions = computed<ChatSession[]>(() => {
 });
 
 const groupedSessions = computed<SessionGroup[]>(() => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStart = today.getTime();
+  const todayStart = beijingTime().startOf("day").valueOf();
   const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
   const weekAgo = todayStart - 7 * 24 * 60 * 60 * 1000;
 
@@ -317,8 +316,8 @@ const loadSessions = async () => {
           agent_data: item.agent_data,
           team_data: item.team_data,
           workflow_data: item.workflow_data,
-          created_time: item.created_at ? new Date(item.created_at * 1000).toISOString() : null,
-          updated_time: item.updated_at ? new Date(item.updated_at * 1000).toISOString() : null,
+          created_time: item.created_at ? formatDateTime(item.created_at * 1000) : null,
+          updated_time: item.updated_at ? formatDateTime(item.updated_at * 1000) : null,
           messages: item.messages || [],
         }));
     }

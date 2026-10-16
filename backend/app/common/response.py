@@ -8,12 +8,13 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Stre
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
-from app.common.constant import DATE_DISPLAY_FMT, DATETIME_DISPLAY_FMT, TIME_DISPLAY_FMT
+from app.common.constant import DATE_DISPLAY_FMT, TIME_DISPLAY_FMT
+from app.common.datetime_utils import format_datetime
 from app.common.enums import RET
 
 # 裸 datetime/date/time（未走 Pydantic 的 dict 等）JSON 输出与 constant 中展示格式一致
 _JSON_DATETIME_CUSTOM_ENCODER: dict[type[Any], Any] = {
-    datetime: lambda d: d.strftime(DATETIME_DISPLAY_FMT),
+    datetime: format_datetime,
     date: lambda d: d.strftime(DATE_DISPLAY_FMT),
     time: lambda t: t.strftime(TIME_DISPLAY_FMT),
 }

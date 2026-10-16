@@ -67,6 +67,7 @@
     ]
   },
   "dependencies": {
+    "@antv/g6": "5.1.1",
     "@element-plus/icons-vue": "^2.3.2",
     "@iconify-json/ep": "^1.2.3",
     "@iconify-json/line-md": "^1.2.16",

@@ -3,13 +3,14 @@ import json
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from agno.run.team import TeamRunOutput
 from agno.session.team import TeamSession
 from redis.asyncio import Redis
 
+from app.common.datetime_utils import format_datetime
 from app.common.enums import RET, RedisInitKeyConfig
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
@@ -96,7 +97,7 @@ def _unix_to_datetime(timestamp: int | None) -> str | None:
     if timestamp is None:
         return None
     try:
-        return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+        return format_datetime(datetime.fromtimestamp(timestamp, tz=UTC))
     except (ValueError, TypeError, OSError):
         return None
 
@@ -432,7 +433,7 @@ async def create_user_model_config(
         item = {
             **config.model_dump(),
             "id": uuid.uuid4().hex,
-            "created_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "created_time": format_datetime(datetime.now(UTC)),
         }
         items.append(item)
         await _write_raw_items(redis, user_id, items)

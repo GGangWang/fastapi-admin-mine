@@ -1,11 +1,13 @@
 """Single-month queries; body columns are never selected by list/detail."""
 
 import codecs
-from datetime import datetime
 
 from sqlalchemy import LargeBinary, cast, func, select
 
-from app.common.http.storage import month_table, months, validate_month
+from app.common.datetime_utils import parse_beijing
+from app.common.http.storage import month_table, validate_month
+from app.common.log_month import available_months
+from app.common.log_time import http_timestamp
 from app.core.exceptions import CustomException
 
 
@@ -14,7 +16,7 @@ class HttpLogService:
         self.db = db
 
     async def available_months(self):
-        return list((await self.db.execute(select(months.c.month).order_by(months.c.month.desc()))).scalars())
+        return await available_months(self.db, "http")
 
     async def table(self, month):
         try:
@@ -37,11 +39,11 @@ class HttpLogService:
                 continue
             if name in {"start_time", "end_time"}:
                 try:
-                    parsed = datetime.fromisoformat(value)
+                    parsed = parse_beijing(value).replace(tzinfo=None)
                 except ValueError as exc:
                     raise CustomException(msg="时间格式无效") from exc
-                if parsed.tzinfo is not None or parsed.strftime("%Y%m") != month:
-                    raise CustomException(msg="时间范围必须位于所选月份内，且不带时区")
+                if parsed.strftime("%Y%m") != month:
+                    raise CustomException(msg="时间范围必须位于所选月份内")
                 conditions.append(table.c.started_at >= parsed if name == "start_time" else table.c.started_at <= parsed)
             elif name in {"method", "result", "status_code", "id", "correlation_id"}:
                 conditions.append(table.c[name] == value)
@@ -55,14 +57,21 @@ class HttpLogService:
             .mappings()
             .all()
         )
-        return {"items": [dict(row) for row in rows], "total": total, "page_no": page_no, "page_size": page_size, "has_next": page_no * page_size < total}
+        return {"items": [self.output(row) for row in rows], "total": total, "page_no": page_no, "page_size": page_size, "has_next": page_no * page_size < total}
+
+    @staticmethod
+    def output(row):
+        result = dict(row)
+        if result.get("started_at") is not None:
+            result["started_at"] = http_timestamp(result["started_at"])
+        return result
 
     async def detail(self, month, log_id):
         table = await self.table(month)
         row = (await self.db.execute(select(*self.columns(table)).where(table.c.id == log_id))).mappings().first()
         if row is None:
             raise CustomException(msg="HTTP 日志不存在")
-        return dict(row)
+        return self.output(row)
 
     async def body(self, month, log_id, side, offset=0):
         table = await self.table(month)

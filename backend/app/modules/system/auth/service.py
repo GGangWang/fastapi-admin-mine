@@ -10,11 +10,12 @@ from fastapi import Request
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.datetime_utils import format_beijing_wall
 from app.common.dict_values import EnableStatus, LoginStatus
 from app.common.enums import EnvironmentEnum, RedisInitKeyConfig
 from app.config.setting import settings
 from app.core.base_schema import AuthSchema, JWTOutSchema, JWTPayloadSchema
-from app.core.database import async_db_session
+from app.core.database import databases
 from app.core.exceptions import CustomException
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
@@ -100,13 +101,16 @@ async def _write_login_log(
     request_os: str | None = None,
     request_browser: str | None = None,
     msg: str | None = None,
-) -> int | None:
+    created_time: datetime | None = None,
+) -> str | None:
     """写入登录日志；失败不影响登录主流程，返回 None。"""
+    from app.modules.system.log.storage import record_month
+    occurred = created_time or datetime.now(UTC)
     try:
-        async with async_db_session() as session, session.begin():
+        async with databases.session("logs") as session:
             _auth = AuthSchema()
-            obj = await LoginLogCRUD(_auth, session).create(
-                data=LoginLogCreateSchema(
+            obj = await LoginLogCRUD(_auth, session, record_month(occurred)).create(
+                data={**LoginLogCreateSchema(
                     username=username,
                     status=status,
                     login_ip=login_ip,
@@ -114,7 +118,7 @@ async def _write_login_log(
                     request_os=request_os,
                     request_browser=request_browser,
                     msg=msg,
-                ),
+                ).model_dump(exclude_none=True), "created_time": occurred},
             )
             return obj.id if obj else None
     except Exception:
@@ -259,15 +263,23 @@ class LoginService:
             login_location=login_location,
         )
 
-        await _write_login_log(
-            username=user.username,
-            status=LoginStatus.SUCCESS.value,
-            login_ip=request_ip,
-            login_location=login_location,
-            request_os=_login_os,
-            request_browser=_login_browser,
-            msg="登录成功",
-        )
+        # Capture before commit; persist after releasing the request transaction.
+        # Otherwise SQLite's active last_login UPDATE blocks the audit writer.
+        log_values = {
+            "username": user.username,
+            "status": LoginStatus.SUCCESS.value,
+            "login_ip": request_ip,
+            "login_location": login_location,
+            "request_os": _login_os,
+            "request_browser": _login_browser,
+            "msg": "登录成功",
+            "created_time": datetime.now(UTC),
+        }
+
+        async def write_login_after_commit():
+            await _write_login_log(**log_values)
+
+        db.info.setdefault("after_commit_callbacks", {})["login_log"] = write_login_after_commit
 
         return cls.build_login_out(token=token, user=user)
 
@@ -345,7 +357,7 @@ class LoginService:
             "login_location": login_location,
             "os": ua_result.os.family if ua_result.os else "Unknown",
             "browser": ua_result.user_agent.family if ua_result.user_agent else "Unknown",
-            "login_time": user.last_login,
+            "login_time": format_beijing_wall(user.last_login) if user.last_login else None,
             "login_type": login_type,
         }
 

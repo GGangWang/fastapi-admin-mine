@@ -1,15 +1,16 @@
 import json
-from datetime import date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from redis.asyncio.client import Redis
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.datetime_utils import format_beijing_wall
 from app.common.enums import RedisInitKeyConfig
 from app.core.logger import logger
 from app.core.redis_crud import RedisCURD
 from app.core.security import decode_access_token
-from app.modules.system.log.model import LoginLogModel
+from app.modules.system.log.storage import TZ, login_relation
 from app.modules.system.user.model import UserModel
 
 from .schema import DashboardStatsSchema, LoginTrendItem, OnlineQueryParam, RecentLoginItem
@@ -52,6 +53,10 @@ class OnlineService:
                         if kw.lower() not in session_info.get("login_location", "").lower():
                             continue
 
+                # Internal cache may predate the public strict format (microseconds/offset).
+                if session_info.get("login_time"):
+                    cached_time = datetime.fromisoformat(session_info["login_time"])
+                    session_info["login_time"] = format_beijing_wall(cached_time)
                 online_users.append(session_info)
             except Exception:
                 # token 已过期或无效，清理 Redis 中的脏数据
@@ -86,119 +91,94 @@ class OnlineService:
         logger.info("清除所有在线用户会话成功")
 
     @staticmethod
-    async def get_dashboard_stats(db: AsyncSession, redis: Redis) -> DashboardStatsSchema:
+    async def get_dashboard_stats(db: AsyncSession, redis: Redis, log_db: AsyncSession) -> DashboardStatsSchema:
         """获取仪表盘统计数据"""
-        today_start = datetime.combine(date.today(), datetime.min.time())
-        week_start = today_start - timedelta(days=7)
-
+        local_today = datetime.now(TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = local_today.astimezone(UTC)
+        week_start = today_start - timedelta(days=6)
+        end = today_start + timedelta(days=1)
         online_count = len(await OnlineService.get_online_list(redis))
-
-        users_sql = select(func.count()).select_from(UserModel).where(UserModel.is_deleted.is_(False))
-        user_count = (await db.execute(users_sql)).scalar() or 0
-
-        users_week_sql = (
-            select(func.count()).select_from(UserModel)
-            .where(UserModel.is_deleted.is_(False), UserModel.created_time >= week_start)
-        )
-        user_week_count = (await db.execute(users_week_sql)).scalar() or 0
-
-        today_login_sql = (
-            select(func.count()).select_from(LoginLogModel)
-            .where(LoginLogModel.created_time >= today_start)
-        )
-        today_login_count = (await db.execute(today_login_sql)).scalar() or 0
-
-        today_unique_sql = (
-            select(func.count(func.distinct(LoginLogModel.username)))
-            .select_from(LoginLogModel)
-            .where(LoginLogModel.created_time >= today_start)
-        )
-        today_unique_count = (await db.execute(today_unique_sql)).scalar() or 0
-
-        recent_stmt = (
-            select(LoginLogModel.username, LoginLogModel.status, LoginLogModel.created_time,
-                   LoginLogModel.login_ip, LoginLogModel.login_location)
-            .where(LoginLogModel.is_deleted.is_(False))
-            .order_by(LoginLogModel.created_time.desc())
-            .limit(10)
-        )
-        recent_rows = (await db.execute(recent_stmt)).all()
-        recent_logins = [
-            RecentLoginItem(username=r.username, status=r.status, login_time=r.created_time,
-                            login_ip=r.login_ip, login_location=r.login_location)
-            for r in recent_rows
-        ]
-
-        # 近 7 天登录趋势：按天聚合登录次数 / 独立用户 / 新增用户（含今天，共 7 天）
-        login_trend = await OnlineService._build_login_trend(db, today_start=today_start, week_start=week_start)
-
-        result = DashboardStatsSchema(
-            online_users=online_count,
-            total_users=user_count,
-            today_login_count=today_login_count,
-            today_unique_users=today_unique_count,
-            week_user_created=user_week_count,
-            login_trend=login_trend,
-            recent_logins=recent_logins,
-        )
-        return result
-
-    @staticmethod
-    async def _build_login_trend(db: AsyncSession, *, today_start: datetime, week_start: datetime) -> list[LoginTrendItem]:
-        """构建近 7 天登录趋势（含今天，共 7 天，按日期倒序填充缺口为 0）。
-
-        参数:
-        - db (AsyncSession): 数据库会话
-        - today_start (datetime): 今天零点
-        - week_start (datetime): 7 天前零点
-
-        返回:
-        - list[LoginTrendItem]: 按日期升序的 7 天趋势
-        """
-        # 查询 7 天内每天登录次数与独立用户数
-        login_sql = (
-            select(
-                func.date(LoginLogModel.created_time).label("day"),
-                func.count().label("logins"),
-                func.count(func.distinct(LoginLogModel.username)).label("unique_users"),
-            )
-            .where(
-                LoginLogModel.is_deleted.is_(False),
-                LoginLogModel.status == 1,  # 仅统计成功登录
-                LoginLogModel.created_time >= week_start,
-            )
-            .group_by(func.date(LoginLogModel.created_time))
-        )
-        login_rows = (await db.execute(login_sql)).all()
-        login_map = {str(r.day): (r.logins, r.unique_users) for r in login_rows}
-
-        # 查询 7 天内每天新增用户数
-        new_user_sql = (
-            select(
-                func.date(UserModel.created_time).label("day"),
-                func.count().label("new_users"),
-            )
-            .where(
-                UserModel.is_deleted.is_(False),
-                UserModel.created_time >= week_start,
-            )
-            .group_by(func.date(UserModel.created_time))
-        )
-        new_rows = (await db.execute(new_user_sql)).all()
-        new_map = {str(r.day): r.new_users for r in new_rows}
-
-        # 生成连续 7 天日期序列（升序），缺口补 0
-        trend: list[LoginTrendItem] = []
-        for offset in range(7):
-            d = week_start.date() + timedelta(days=offset)
-            day_str = d.isoformat()
-            logins, unique_users = login_map.get(day_str, (0, 0))
-            trend.append(
-                LoginTrendItem(
-                    day=day_str,
-                    logins=int(logins or 0),
-                    unique_users=int(unique_users or 0),
-                    new_users=int(new_map.get(day_str, 0) or 0),
+        user_count = (await db.execute(select(func.count()).select_from(UserModel).where(UserModel.is_deleted.is_(False)))).scalar() or 0
+        user_week_count = (
+            await db.execute(
+                select(func.count())
+                .select_from(UserModel)
+                .where(
+                    UserModel.is_deleted.is_(False),
+                    UserModel.created_time >= week_start,
+                    UserModel.created_time < end,
                 )
             )
+        ).scalar() or 0
+        today = await login_relation(log_db, today_start, end)
+        counts = (
+            await log_db.execute(
+                select(func.count(), func.count(func.distinct(today.c.username)))
+                .select_from(today)
+                .where(
+                    today.c.created_time >= today_start,
+                    today.c.created_time < end,
+                )
+            )
+        ).one()
+        recent = await login_relation(log_db)
+        recent_rows = (
+            (
+                await log_db.execute(
+                    select(recent)
+                    .where(recent.c.is_deleted.is_(False))
+                    .order_by(
+                        recent.c.created_time.desc(),
+                        recent.c.id.desc(),
+                        recent.c.uuid.desc(),
+                    )
+                    .limit(10)
+                )
+            )
+            .mappings()
+            .all()
+        )
+        recent_logins = [RecentLoginItem(username=r["username"], status=r["status"], login_time=r["created_time"], login_ip=r["login_ip"], login_location=r["login_location"]) for r in recent_rows]
+        return DashboardStatsSchema(
+            online_users=online_count,
+            total_users=user_count,
+            today_login_count=counts[0],
+            today_unique_users=counts[1],
+            week_user_created=user_week_count,
+            login_trend=await OnlineService._build_login_trend(db, log_db, today_start=today_start, week_start=week_start),
+            recent_logins=recent_logins,
+        )
+
+    @staticmethod
+    async def _build_login_trend(db: AsyncSession, log_db: AsyncSession, *, today_start: datetime, week_start: datetime) -> list[LoginTrendItem]:
+        """Seven Beijing calendar days including today; UTC bounds work on every dialect."""
+        logs = await login_relation(log_db, week_start, today_start + timedelta(days=1))
+        trend = []
+        for offset in range(7):
+            start = week_start + timedelta(days=offset)
+            end = start + timedelta(days=1)
+            row = (
+                await log_db.execute(
+                    select(func.count(), func.count(func.distinct(logs.c.username)))
+                    .select_from(logs)
+                    .where(
+                        logs.c.is_deleted.is_(False),
+                        logs.c.status == 1,
+                        logs.c.created_time >= start,
+                        logs.c.created_time < end,
+                    )
+                )
+            ).one()
+            new_users = (
+                await db.execute(
+                    select(func.count())
+                    .select_from(UserModel)
+                    .where(
+                        UserModel.is_deleted.is_(False),
+                        UserModel.created_time >= start,
+                        UserModel.created_time < end,
+                    )
+                )
+            ).scalar() or 0
+            trend.append(LoginTrendItem(day=start.astimezone(TZ).date().isoformat(), logins=row[0], unique_users=row[1], new_users=new_users))
         return trend

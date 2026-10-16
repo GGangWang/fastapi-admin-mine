@@ -2,10 +2,12 @@ import asyncio
 import platform
 import socket
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 import psutil
 
+from app.common.datetime_utils import format_datetime
 from app.utils.common_util import bytes2human
 
 from .schema import (
@@ -103,7 +105,7 @@ class ServerService:
         return PyInfoSchema(
             name=current_process.name(),
             version=platform.python_version(),
-            start_time=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)),
+            start_time=format_datetime(datetime.fromtimestamp(start_time, tz=UTC)),
             run_time=run_time,
             home=str(Path(current_process.exe())),
             memory_total=bytes2human(memory.available),

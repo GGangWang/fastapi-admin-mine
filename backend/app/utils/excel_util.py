@@ -1,11 +1,14 @@
 import asyncio
 import io
+from datetime import datetime
 from typing import Any
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
+
+from app.common.datetime_utils import format_datetime
 
 
 class ExcelUtil:
@@ -132,7 +135,8 @@ class ExcelUtil:
 
         for row_num, row_data in enumerate(mapping_data, 2):
             for col_num, header in enumerate(headers, 1):
-                ws.cell(row=row_num, column=col_num, value=row_data.get(header))
+                value = row_data.get(header)
+                ws.cell(row=row_num, column=col_num, value=format_datetime(value) if isinstance(value, datetime) else value)
 
         buffer = io.BytesIO()
         wb.save(buffer)

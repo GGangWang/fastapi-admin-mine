@@ -1,24 +1,35 @@
 <template>
   <div class="fa-full-height flex flex-col gap-3">
-    <FaSearchBar v-model="search" :items="searchItems" @search="searchRows" @reset="resetSearch" />
+    <FaSearchBar
+      v-model="search"
+      :items="searchItems"
+      :is-expand="false"
+      :show-expand="true"
+      :show-reset="true"
+      :show-search="true"
+      :default-expanded="false"
+      @search="searchRows"
+      @reset="resetSearch"
+    >
+      <template #month>
+        <ElSelect
+          v-model="month"
+          :clearable="false"
+          style="width: 100%"
+          :placeholder="t('httpLog.month')"
+          @change="changeMonth"
+        >
+          <ElOption
+            v-for="item in months"
+            :key="item"
+            :label="`${item.slice(0, 4)}-${item.slice(4)}`"
+            :value="item"
+          />
+        </ElSelect>
+      </template>
+    </FaSearchBar>
     <ElCard class="fa-table-card flex-1 min-h-0">
-      <FaTableHeader :loading="loading" layout="refresh" @refresh="loadRows">
-        <template #left>
-          <ElSelect
-            v-model="month"
-            class="w-40"
-            :placeholder="t('httpLog.month')"
-            @change="changeMonth"
-          >
-            <ElOption
-              v-for="item in months"
-              :key="item"
-              :label="`${item.slice(0, 4)}-${item.slice(4)}`"
-              :value="item"
-            />
-          </ElSelect>
-        </template>
-      </FaTableHeader>
+      <FaTableHeader :loading="loading" layout="refresh" @refresh="loadRows" />
       <FaTable
         :loading="loading"
         :data="rows"
@@ -61,7 +72,9 @@
               :type="DictTypeEnum.SYS_HTTP_METHOD"
               :value="detail[key]"
             />
-            <span v-else class="break-all whitespace-pre-wrap">{{ detail[key] ?? "—" }}</span>
+            <span v-else class="break-all whitespace-pre-wrap">{{
+              key === "started_at" ? formatLogTime(detail.started_at) : (detail[key] ?? "—")
+            }}</span>
           </ElDescriptionsItem>
         </ElDescriptions>
         <ElTabs v-model="side" @tab-change="resetBody">
@@ -106,6 +119,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import { formatDateTime as formatLogTime, dateTimeFormValue, beijingTime } from "@/utils/dateTime";
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElMessage } from "element-plus";
@@ -116,8 +130,7 @@ import type { SearchFormItem } from "@/components/forms/fa-search-bar/index.vue"
 defineOptions({ name: "HttpLog" });
 const { t } = useI18n();
 const dict = useDict([DictTypeEnum.SYS_HTTP_METHOD, DictTypeEnum.SYS_HTTP_RESULT]);
-const today = new Date();
-const month = ref(`${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}`);
+const month = ref(beijingTime().format("YYYYMM"));
 const months = ref<string[]>([]);
 const search = ref<Record<string, any>>({});
 const rows = ref<HttpLog[]>([]);
@@ -145,7 +158,12 @@ const columns = computed(() => [
     showOverflowTooltip: true,
     ...(["method", "result"].includes(prop)
       ? { useSlot: true, slotName: prop }
-      : { formatter: (row: HttpLog) => row[prop as keyof HttpLog] ?? "—" }),
+      : {
+          formatter: (row: HttpLog) =>
+            prop === "started_at"
+              ? formatLogTime(row.started_at)
+              : (row[prop as keyof HttpLog] ?? "—"),
+        }),
   })),
   {
     prop: "actions",
@@ -157,6 +175,13 @@ const columns = computed(() => [
   },
 ]);
 const searchItems = computed<SearchFormItem[]>(() => [
+  {
+    key: "month",
+    label: t("auditLog.month"),
+    type: "select",
+    span: 6,
+    props: { clearable: false },
+  },
   ...["service", "business", "url", "operator", "id", "correlation_id"].map((key) => ({
     key,
     label: fieldLabel(key),
@@ -183,14 +208,14 @@ const searchItems = computed<SearchFormItem[]>(() => [
     label: t("httpLog.start"),
     type: "datetime",
     span: 6,
-    props: { valueFormat: "YYYY-MM-DDTHH:mm:ss", disabledDate },
+    props: { valueFormat: "YYYY-MM-DD HH:mm:ss", disabledDate },
   },
   {
     key: "end_time",
     label: t("httpLog.end"),
     type: "datetime",
     span: 6,
-    props: { valueFormat: "YYYY-MM-DDTHH:mm:ss", disabledDate },
+    props: { valueFormat: "YYYY-MM-DD HH:mm:ss", disabledDate },
   },
 ]);
 function disabledDate(value: Date) {
@@ -207,6 +232,8 @@ async function loadRows() {
   try {
     const result = await HttpLogAPI.list({
       ...search.value,
+      start_time: search.value.start_time ? dateTimeFormValue(search.value.start_time) : undefined,
+      end_time: search.value.end_time ? dateTimeFormValue(search.value.end_time) : undefined,
       month: month.value,
       page_no: pagination.value.current,
       page_size: pagination.value.size,

@@ -348,6 +348,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDateTime } from "@/utils/dateTime";
 import { EnableStatusValue } from "@/enums/status.enum";
 
 import { DictTypeEnum } from "@/constants/dict-types";
@@ -568,12 +569,8 @@ function formatSpeed(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec <= 0) return "0 B/s";
   return `${formatSize(bytesPerSec)}/s`;
 }
-function formatTime(t?: string | null): string {
-  if (!t) return "—";
-  const d = new Date(t);
-  if (Number.isNaN(d.getTime())) return "—";
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+function formatTime(t?: string | null) {
+  return t ? formatDateTime(t) : "—";
 }
 
 // ── 任务展示辅助 ──────────────────────────────────────────────────────

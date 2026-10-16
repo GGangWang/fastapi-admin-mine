@@ -5,6 +5,7 @@
 - assert_route: 验证接口路由存在 (status_code != 404)
 """
 
+import json
 import os
 import sys
 import tempfile
@@ -27,6 +28,8 @@ _TEST_DB_PATH = tempfile.NamedTemporaryFile(suffix=".db", delete=False).name
 
 os.environ["DATABASE_TYPE"] = "sqlite"
 os.environ["DATABASE_NAME"] = _TEST_DB_PATH
+os.environ["DATASOURCES"] = json.dumps({"logs": {"database": tempfile.NamedTemporaryFile(suffix=".db", delete=False).name}})
+
 os.environ["POOL_SIZE"] = "1"
 os.environ["MAX_OVERFLOW"] = "1"
 os.environ["SECRET_KEY"] = "unit-test-secret-key-not-a-real-secret"  # Settings 必填项，固定注入保证测试确定性
@@ -175,6 +178,9 @@ async def _test_lifespan(app) -> AsyncGenerator[Any, None]:
     from app.scripts.initialize import InitializeData
 
     await InitializeData().init_db()
+    from app.core.database import databases
+    from app.modules.system.log.storage import initialize
+    await initialize(databases.engine("logs"))
     app.state.redis = _mock_redis
 
     # 将 admin 密码重置为已知密码 "admin123"

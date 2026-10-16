@@ -5,8 +5,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.response import SuccessResponse
-from app.core.database import async_db_session
-from app.core.dependencies import AuthPermission, db_getter
+from app.core.database import databases
+from app.core.dependencies import AuthPermission, log_db_getter
 
 from .service import HttpLogService
 
@@ -27,7 +27,7 @@ async def ticket_download(request: Request, ticket: str):
 
 
 @HttpLogRouter.post("/{month}/{log_id}/ticket/{side}", dependencies=[Security(AuthPermission(["system:http_log:download"]))])
-async def download_ticket(request: Request, db: Annotated[AsyncSession, Depends(db_getter)], month: str, log_id: str, side: Literal["request", "response"]):
+async def download_ticket(request: Request, db: Annotated[AsyncSession, Depends(log_db_getter)], month: str, log_id: str, side: Literal["request", "response"]):
     import json
     import secrets
 
@@ -42,13 +42,13 @@ async def download_ticket(request: Request, db: Annotated[AsyncSession, Depends(
 
 
 @HttpLogRouter.get("/months", dependencies=[Security(AuthPermission(["system:http_log:query"]))])
-async def available_months(db: Annotated[AsyncSession, Depends(db_getter)]):
+async def available_months(db: Annotated[AsyncSession, Depends(log_db_getter)]):
     return SuccessResponse(data=await HttpLogService(db).available_months())
 
 
 @HttpLogRouter.get("/list", dependencies=[Security(AuthPermission(["system:http_log:query"]))])
 async def list_logs(
-    db: Annotated[AsyncSession, Depends(db_getter)],
+    db: Annotated[AsyncSession, Depends(log_db_getter)],
     month: str,
     page_no: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=200)] = 20,
@@ -85,17 +85,17 @@ async def list_logs(
 
 
 @HttpLogRouter.get("/{month}/{log_id}", dependencies=[Security(AuthPermission(["system:http_log:detail"]))])
-async def detail(db: Annotated[AsyncSession, Depends(db_getter)], month: str, log_id: str):
+async def detail(db: Annotated[AsyncSession, Depends(log_db_getter)], month: str, log_id: str):
     return SuccessResponse(data=await HttpLogService(db).detail(month, log_id))
 
 
 @HttpLogRouter.get("/{month}/{log_id}/body/{side}", dependencies=[Security(AuthPermission(["system:http_log:body"]))])
-async def body(db: Annotated[AsyncSession, Depends(db_getter)], month: str, log_id: str, side: Literal["request", "response"], offset: Annotated[int, Query(ge=0)] = 0):
+async def body(db: Annotated[AsyncSession, Depends(log_db_getter)], month: str, log_id: str, side: Literal["request", "response"], offset: Annotated[int, Query(ge=0)] = 0):
     return SuccessResponse(data=await HttpLogService(db).body(month, log_id, side, offset))
 
 
 @HttpLogRouter.get("/{month}/{log_id}/download/{side}", dependencies=[Security(AuthPermission(["system:http_log:download"]))])
-async def download(db: Annotated[AsyncSession, Depends(db_getter)], month: str, log_id: str, side: Literal["request", "response"]):
+async def download(db: Annotated[AsyncSession, Depends(log_db_getter)], month: str, log_id: str, side: Literal["request", "response"]):
     from app.core.exceptions import CustomException
 
     row = await HttpLogService(db).detail(month, log_id)
@@ -114,7 +114,7 @@ def body_download(month, log_id, side):
 
     async def chunks():
         offset = 0
-        async with async_db_session() as session:
+        async with databases.session("logs") as session:
             service = HttpLogService(session)
             while True:
                 page = await service.body(month, log_id, side, offset)

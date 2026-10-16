@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.common.request import PaginationService
 from app.common.response import ResponseSchema, SuccessResponse
 from app.core.base_schema import AuthSchema, PaginationQueryParam
-from app.core.dependencies import AuthPermission, db_getter, get_current_user, redis_getter
+from app.core.dependencies import AuthPermission, db_getter, get_current_user, log_db_getter, redis_getter
 from app.core.router_class import OperationLogRoute
 
 from .schema import DashboardStatsSchema, OnlineOutSchema, OnlineQueryParam
@@ -60,9 +60,10 @@ async def clear_online_controller(
 
 @OnlineRouter.get("/stats", summary="获取仪表盘统计数据", response_model=ResponseSchema[DashboardStatsSchema])
 async def get_dashboard_stats_controller(
+    log_db: Annotated[AsyncSession, Depends(log_db_getter)],
     db: Annotated[AsyncSession, Depends(db_getter)],
     redis: Annotated[Redis, Depends(redis_getter)],
     _auth: Annotated[AuthSchema, Security(AuthPermission(["module_monitor:dashboard:query"]))],
 ) -> JSONResponse:
-    data: DashboardStatsSchema = await OnlineService.get_dashboard_stats(db=db, redis=redis)
+    data: DashboardStatsSchema = await OnlineService.get_dashboard_stats(db=db, redis=redis, log_db=log_db)
     return SuccessResponse(data=data, msg="获取仪表盘统计成功")

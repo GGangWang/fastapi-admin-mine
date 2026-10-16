@@ -114,11 +114,7 @@ function warnInvalidRouteConfig(routes: AppRouteRecord[], parentPath = ""): void
         );
       }
       // 检查目录挂组件：会让 RouterView 的深度跳级失效（出口渲染目录组件而非叶子页面，叶子被重复挂载）
-      if (
-        route.children?.length &&
-        route.component &&
-        route.component !== ROUTE_COMPONENT_LAYOUT
-      ) {
+      if (route.children?.length && route.component && route.component !== ROUTE_COMPONENT_LAYOUT) {
         console.warn(
           `[路由配置] 目录节点不应挂组件: "${route.path}" → ${String(route.component)}；` +
             "中间层一旦有组件，RouterView 深度跳级即失效，页面会被重复挂载、接口重复请求"
@@ -222,6 +218,9 @@ export class RouteTransformer {
 
   /** 一级叶子 → 包 Layout，其下挂实际组件 */
   private handleFirstLevelLeaf(route: AppRouteRecord): Record<string, any> {
+    // 已注册在 RootLayout 下，叶子直接使用完整路径，避免重复拼接与嵌套 Layout。
+    if (this.options.shellChild) return this.buildLeafRoute(route, 0)!;
+
     const firstSegment = this.pathFirstSegment(route.path);
     const fullMenuPath = route.path.startsWith("/") ? route.path : `/${route.path}`;
     return {

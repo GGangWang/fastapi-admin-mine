@@ -583,6 +583,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDateTime } from "@/utils/dateTime";
 import { DictTypeEnum } from "@/constants/dict-types";
 import { useDict } from "@/hooks/core/useDict";
 const pageDict = useDict([DictTypeEnum.STORAGE_LINK_EXPIRY]);
@@ -1527,11 +1528,7 @@ function formatSize(size?: number | null) {
 }
 
 function formatTime(mtime?: string | null) {
-  if (!mtime) return "—";
-  const d = new Date(mtime);
-  if (Number.isNaN(d.getTime())) return String(mtime);
-  const pad = (x: number) => String(x).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  return mtime ? formatDateTime(mtime) : "—";
 }
 
 // ─── 节点加载与标签持久化 ───────────────────────────────────────────

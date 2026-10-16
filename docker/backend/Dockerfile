@@ -4,6 +4,7 @@
 # 构建参数 DB 决定安装哪套数据库驱动：
 #   docker build --build-arg DB=mysql    -f docker/backend/Dockerfile .   # 默认
 #   docker build --build-arg DB=postgres -f docker/backend/Dockerfile .
+#   docker build --build-arg DB=kingbase -f docker/backend/Dockerfile . # 外部金仓 PG 兼容实例
 #
 # 注意：正式部署建议用 deploy-artifacts.sh（本地构建镜像 → docker save/load），
 #      这样服务器上不需要源码，也不需要构建工具链。
